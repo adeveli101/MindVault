@@ -113,7 +113,7 @@ class JournalDetailScreen extends StatelessWidget {
               Navigator.pushReplacement( // Detay ekranını kapatıp düzenlemeye git
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AddEditJournalScreen(entry: entry),
+                  builder: (_) => AddEditJournalScreen(),
                 ),
               );
             },

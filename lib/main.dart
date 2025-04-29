@@ -2,38 +2,32 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// SystemChrome için (isteğe bağlı)
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
 import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
 import 'package:mindvault/features/journal/screens/home/home_screen.dart';
 import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
+import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
 import 'package:mindvault/firebase_options.dart';
-import 'package:mindvault/theme_mindvault.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // MultiProvider için gerekli
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Tarih formatlama için
-
-// --- Kendi Proje Dosyalarınız ---
-// (Yolları KONTROL EDİN ve kendi projenize göre güncelleyin!)
-
-
-// Global olarak Repository ve BLoC örnekleri (main içinde başlatılacak)
-// Provider ile yönetmek daha temizdir, bu yüzden bunları global yapmayacağız.
-// MindVaultRepository? mindVaultRepository;
-// JournalBloc? journalBloc;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stacked_themes/stacked_themes.dart'; // <-- stacked_themes import edildi
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // stacked_themes'i başlat
+  await ThemeManager.initialise(); // Bu doğru
+
   // Onboarding durumunu kontrol et
   final prefs = await SharedPreferences.getInstance();
-  // 'onboarding_complete' anahtarını oku, eğer yoksa (ilk açılış) false döner
   final bool onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+  // Tema index'ini SharedPreferences'dan okumaya GEREK YOK
 
   // Diğer başlatmaları yap (Firebase, Intl, Repository)
-  MindVaultRepository? mindVaultRepository; // Nullable yapalım
+  MindVaultRepository? mindVaultRepository;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -51,9 +45,9 @@ Future<void> main() async {
     runApp(
       MultiProvider(
         providers: [
-          // Repository'yi sağla (nullable kontrolü ile)
+          // Repository'yi sağla
           Provider<MindVaultRepository>(
-            create: (_) => mindVaultRepository!, // Burada null olmamalı
+            create: (_) => mindVaultRepository!,
             dispose: (_, repo) => repo.close(),
           ),
           // JournalBloc'u sağla
@@ -62,8 +56,8 @@ Future<void> main() async {
               repository: context.read<MindVaultRepository>(),
             )..add(const LoadJournalEntries()),
           ),
+          // Provider<ThemeService> veya Provider<int> BURADA GEREKLİ DEĞİL
         ],
-        // Onboarding durumuna göre hangi widget'ı göstereceğimizi MyApp içinde belirleyelim
         child: MyApp(showOnboarding: !onboardingComplete),
       ),
     );
@@ -72,43 +66,54 @@ Future<void> main() async {
       print("FATAL ERROR during App Initialization: $error");
       print(stackTrace);
     }
+    // Hata ekranını göster
     runApp(InitializationErrorScreen(error: error));
   }
 }
 
 /// Ana Uygulama Widget'ı
 class MyApp extends StatelessWidget {
-  /// Onboarding ekranının gösterilip gösterilmeyeceğini belirler.
   final bool showOnboarding;
-
   const MyApp({super.key, required this.showOnboarding});
+
+  // _convertThemeManagerMode fonksiyonuna artık gerek yok
 
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) {
       print("MyApp build method called. Show Onboarding: $showOnboarding");
     }
-    return MaterialApp(
-      title: 'Mind Vault',
-      debugShowCheckedModeBanner: false,
-      theme: MindVaultTheme.lightTheme,
-      darkTheme: MindVaultTheme.darkTheme,
-      themeMode: ThemeMode.system,
 
-      // --- Başlangıç Ekranı (Dinamik) ---
-      // Eğer onboarding tamamlanmadıysa OnboardingScreen'i, tamamlandıysa HomeScreen'i göster.
-      home: showOnboarding ? const OnboardingScreen() : const HomeScreen(),
+    // ThemeBuilder widget'ını MaterialApp'ı saracak şekilde kullanıyoruz
+    return ThemeBuilder(
+      // Bizim tanımladığımız ThemeData listesini veriyoruz
+      themes: ThemeConfig.materialThemes,
+      // İsteğe bağlı: Durum çubuğu rengini tema ile değiştirmek için
+      // statusBarColorBuilder: (theme) => theme?.primaryColor,
+      // İsteğe bağlı: Sadece Açık/Koyu mod kullanılacaksa
+      // lightTheme: ...,
+      // darkTheme: ...,
+      // defaultThemeMode: ThemeMode.system,
 
-      // Rotaları tanımlayabilirsiniz (isteğe bağlı)
-      // routes: {
-      //   HomeScreen.routeName: (ctx) => const HomeScreen(),
-      //   OnboardingScreen.routeName: (ctx) => const OnboardingScreen(),
-      //   JournalListScreen.routeName: (ctx) => const JournalListScreen(),
-      // },
+      // builder fonksiyonu context, regularTheme, darkTheme, themeMode sağlar
+      builder: (context, regularTheme, darkTheme, themeMode) {
+        // Bu parametreleri doğrudan MaterialApp'a veriyoruz
+        return MaterialApp(
+          title: 'Mind Vault',
+          debugShowCheckedModeBanner: false,
+
+          // Temaları ThemeBuilder'dan al
+          theme: regularTheme,
+          darkTheme: darkTheme, // Birden çok tema olsa bile darkTheme sağlanabilir
+          themeMode: themeMode, // ThemeBuilder bunu yönetir
+
+          // Başlangıç Ekranı (Dinamik)
+          home: showOnboarding ? const OnboardingScreen() : const HomeScreen(),
+        );
+      },
     );
   }
 }
-
 
 /// Başlatma sırasında hata oluşursa gösterilecek basit bir ekran.
 class InitializationErrorScreen extends StatelessWidget {
@@ -117,6 +122,7 @@ class InitializationErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bu kısım aynı kalabilir
     return MaterialApp(
       home: Scaffold(
         body: Center(
