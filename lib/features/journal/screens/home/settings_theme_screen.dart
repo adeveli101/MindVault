@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mindvault/features/journal/screens/home/explore_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 // Paket adınız 'mindvault' ise aşağıdaki gibi olmalı. Değilse düzeltin.
 // BU DOSYADAKİ VE DİĞER TÜM DOSYALARDAKİ YOLLAR AYNI OLMALI!
@@ -489,10 +490,10 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
         icon: const Icon(Icons.collections_bookmark_outlined, size: 18),
         label: const Text('Tüm Temaları Gör'),
         onPressed: () {
-          // TODO: Navigate to themes page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tüm temalar sayfası yakında!')),
-          );
+
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreScreen()));
+
+
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,

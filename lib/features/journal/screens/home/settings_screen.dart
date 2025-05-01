@@ -1,66 +1,61 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:stacked_themes/stacked_themes.dart';
-import 'package:mindvault/features/journal/screens/themes/theme_config.dart'; // Kendi import yolunuzu kullanın
+// ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
+import 'package:mindvault/features/journal/screens/home/settings_theme_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
 
+class SettingsHostScreen extends StatelessWidget {
+  const SettingsHostScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    // Mevcut tema yöneticisini al
-    final themeManager = getThemeManager(context);
-    // Mevcut seçili tema indeksini al (varsayılan 0)
-    int currentThemeIndex = themeManager.selectedThemeIndex ?? 0;
-
     return Scaffold(
-      appBar: AppBar(title: Text('Tema Seçimi')),
-      body: ListView.builder(
-        // ThemeConfig'deki tema sayısı kadar öğe oluştur
-        itemCount: ThemeConfig.themes.length,
-        itemBuilder: (context, index) {
-          // O indeksteki tema verisini al
-          final themeInfo = ThemeConfig.getAppThemeDataByIndex(index);
-
-          // Ücretli tema ise ve kilidi açılmamışsa farklı göster (Bu kısım için ek mantık gerekir)
-          bool isLocked = !themeInfo.isFree /* && !userHasPurchased(themeInfo.type) */; // Satın alma kontrolü eklenmeli
-
-          return ListTile(
-            title: Text(themeInfo.name), // Temanın adını göster
-            leading: Icon(
-              currentThemeIndex == index
-                  ? Icons.check_circle // Seçili ise işaretli ikon
-                  : Icons.circle_outlined, // Seçili değilse boş ikon
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            trailing: isLocked ? Icon(Icons.lock, color: Colors.grey) : null, // Kilitli ise kilit ikonu
-            onTap: isLocked
-                ? () {
-              // Ücretli ve kilitli tema tıklandığında satın alma işlemi başlatılabilir
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${themeInfo.name} temasını satın almanız gerekiyor.')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        // Bu AppBar MainScreen'deki tarafından gizlenebilir veya kullanılabilir.
+        // Eğer MainScreen'de merkezi AppBar yoksa burası görünür.
+        title: const Text('Ayarlar'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          ListTile(
+            leading: Icon(Icons.palette_outlined, color: Theme.of(context).colorScheme.secondary),
+            title: const Text('Görünüm ve Tema'),
+            subtitle: const Text('Tema, yazı tipi ve boyut ayarları'),
+            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsThemeScreen()),
               );
-            }
-                : () {
-              // Kilitli değilse veya ücretsizse, temayı seç
-              if (kDebugMode) {
-                print('Selecting theme at index: $index');
-              }
-              // ThemeManager aracılığıyla temayı değiştir!
-              themeManager.selectThemeAtIndex(index);
             },
-            // Kilitli temaları biraz soluk gösterelim
-            enabled: !isLocked,
-            tileColor: isLocked ? Colors.grey.withOpacity(0.1) : null,
-          );
-        },
+          ),
+          const Divider(), // Ayırıcı
+          // Diğer ayar öğeleri
+          ListTile(
+            leading: Icon(Icons.security_outlined, color: Theme.of(context).colorScheme.secondary),
+            title: const Text('Güvenlik'),
+            subtitle: const Text('Şifre, biyometrik kilit'),
+            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () { /* TODO */ },
+          ),
+          ListTile(
+            leading: Icon(Icons.notifications_outlined, color: Theme.of(context).colorScheme.secondary),
+            title: const Text('Bildirimler'),
+            subtitle: const Text('Yazma hatırlatıcıları'),
+            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () { /* TODO */ },
+          ),
+          ListTile(
+            leading: Icon(Icons.cloud_outlined, color: Theme.of(context).colorScheme.secondary),
+            title: const Text('Yedekleme & Geri Yükleme'),
+            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () { /* TODO */ },
+          ),
+        ],
       ),
     );
   }
-
-// Gerçek uygulamada bu fonksiyon uygulama içi satın alma durumunu kontrol etmeli
-// bool userHasPurchased(NotebookThemeType themeType) {
-//   // Satın alma durumunu kontrol etme mantığı...
-//   return false; // Şimdilik hep kilitli varsayalım
-// }
 }

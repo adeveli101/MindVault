@@ -6,7 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
 import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
-import 'package:mindvault/features/journal/screens/home/home_screen.dart';
+import 'package:mindvault/features/journal/screens/home/main_screen.dart';
 import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
 import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
 import 'package:mindvault/firebase_options.dart';
@@ -108,7 +108,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeMode, // ThemeBuilder bunu yönetir
 
           // Başlangıç Ekranı (Dinamik)
-          home: showOnboarding ? const OnboardingScreen() : const HomeScreen(),
+          home: showOnboarding ? const OnboardingScreen() : const MainScreen(),
         );
       },
     );
