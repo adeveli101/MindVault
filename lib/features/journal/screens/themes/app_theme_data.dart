@@ -1,24 +1,32 @@
-// lib/theme/app_theme_data.dart (GÜNCELLENDİ)
+// lib/theme/app_theme_data.dart (MEVCUT VE DOĞRU YAPI)
 
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'notebook_theme_type.dart';
 
 class AppThemeData extends Equatable {
+  /// Temanın benzersiz türünü tanımlar (enum).
   final NotebookThemeType type;
+
+  /// Tema seçim ekranında gösterilecek ad.
   final String name;
-  // backgroundAssetPath artık tam sayfa görselini tutacak
+
+  /// Bu tema için kullanılacak tam sayfa arka plan görselinin yolu.
   final String backgroundAssetPath;
-  // overlayAssetPath kaldırıldı
+
+  /// Flutter'ın Material Design tema verilerini içeren nesne.
+  /// Renkler, fontlar, widget stilleri gibi YÜZLERCE parametreyi
+  /// bu nesne kendi içinde barındırır.
   final ThemeData materialTheme;
+
+  /// Temanın ücretsiz olup olmadığını belirtir.
   final bool isFree;
 
   const AppThemeData({
     required this.type,
     required this.name,
-    required this.backgroundAssetPath, // Bu artık sayfa görseli yolu
-    // overlayAssetPath kaldırıldı
-    required this.materialTheme,
+    required this.backgroundAssetPath,
+    required this.materialTheme, // ThemeData nesnesi burada!
     required this.isFree,
   });
 
@@ -27,7 +35,6 @@ class AppThemeData extends Equatable {
     type,
     name,
     backgroundAssetPath,
-    // overlayAssetPath kaldırıldı
     materialTheme,
     isFree,
   ];

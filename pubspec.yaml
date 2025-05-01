@@ -105,6 +105,14 @@ flutter:
   assets:
     - assets/
     - assets/pages/
+    - assets/pages/light/
+    - assets/pages/leather/
+    - assets/pages/dark/
+    - assets/pages/antique/
+    - assets/pages/watercolor/
+    - assets/pages/japanase_minimalist/
+    - assets/pages/digital_scrapbooking/
+    - assets/pages/architectural_blueprint_style/
 
 
   # Jenerik L10n

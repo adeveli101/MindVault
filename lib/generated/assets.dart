@@ -2,6 +2,13 @@
 class Assets {
   Assets._();
 
-  static const String pagesBookPage1 = 'assets/pages/book_page-1.jpg';
+  static const String antiqueAntiquePage1 = 'assets/pages/antique/antique_page1.jpg';
+  static const String darkDarkPage = 'assets/pages/dark/dark_page.jpg';
+  static const String digitalScrapbookingScrapbookPage1 = 'assets/pages/digital_scrapbooking/scrapbook_page1.jpg';
+  static const String japanaseMinimalistJpnMinimalistPage1 = 'assets/pages/japanase_minimalist/jpn_minimalist_page1.jpg';
+  static const String leatherLeatherPage1 = 'assets/pages/leather/leather_page1.jpg';
+  static const String lightLightPage = 'assets/pages/light/light_page.jpg';
+  static const String lightLightPage1 = 'assets/pages/light/light_page1.jpg';
+  static const String watercolorWatercolorPage1 = 'assets/pages/watercolor/watercolor_page1.jpg';
 
 }
