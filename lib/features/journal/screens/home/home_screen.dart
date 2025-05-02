@@ -1,100 +1,116 @@
-// lib/features/journal/screens/home/home_screen.dart (Karşılama Ekranı Olarak Yeniden Düzenlendi)
+// lib/features/journal/screens/home/home_screen.dart (Eski Tasarıma Yakın, Geliştirilmiş)
+// Değişiklikler: TextButton kaldırıldı, sadece ikon kullanıldı, sağ üste yeniden konumlandırıldı (3:4 oranlı boşluk).
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Tarih formatlama için
-// ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
-// ThemedBackground importu gerekli olabilir, yolu kontrol edin
-// import 'package:mindvault/widgets/themed_background.dart';
-// Artık BLoC, Model, diğer ekran importlarına burada ihtiyaç yok.
-// ==============================================================
+import 'package:intl/intl.dart';
+import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart'; // Tarih formatlama için
+
+
+
 
 class HomeScreen extends StatelessWidget {
-  // Artık state yönetimi olmadığı için StatelessWidget olabilir
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Mevcut temayı ve renkleri al
+    // Mevcut temayı ve renkleri al (ThemeConfig ile yapılandırıldığı varsayılır)
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    // Ekran genişliğini al
-    final screenWidth = MediaQuery.of(context).size.width;
-
     // Görüntülenecek tarih
     final now = DateTime.now();
     // Türkçe format için intl paketi kullanılır (main.dart'ta initializeDateFormatting yapılmalı)
-    final formattedDate = DateFormat('dd MMMM yyyy, EEEE', 'tr_TR').format(now);
+    final formattedDate = DateFormat('dd MMMM yyyy, EEEE' , 'tr_TR').format(now);
 
     // MainScreen zaten ThemedBackground ve Scaffold sağlıyor.
     // Biz sadece Scaffold'un body'si için içeriği döndüreceğiz.
-    // İçeriği ortalamak ve genişliği kısıtlamak için Center ve SizedBox kullanıyoruz.
-    return Center(
-      child: SizedBox(
-        // Genişliği ekranın 3/4'ü olarak ayarla
-        width: screenWidth * 0.75,
-        // Yüksekliği de kısıtlayabiliriz veya Column'un sarmasına izin verebiliriz
-        // height: MediaQuery.of(context).size.height * 0.6, // Örnek yükseklik kısıtlaması
-        child: Padding(
-          // Widget'ları daha içeri almak için ek padding
-          // Bu padding, 3/4 genişliğindeki alanın *içinde* uygulanır.
-          padding: const EdgeInsets.symmetric(vertical: 50.0, horizontal: 16.0), // Dikeyde daha fazla boşluk
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // İçeriği dikeyde ortala
-            crossAxisAlignment: CrossAxisAlignment.center, // İçeriği yatayda ortala
-            children: [
-              // Karşılama Mesajı veya Uygulama Logosu/İkonu
-              Icon(
-                Icons.auto_stories, // Örnek bir ikon
-                size: 80,
-                color: colorScheme.primary.withOpacity(0.8),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Mind Vault', // Veya "Hoş Geldin!"
-                style: textTheme.headlineLarge?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+    // Ortalanmış içerik ve sabit alt/üst elemanlar için Stack kullanıyoruz.
+    return Stack(
+      children: [
+        // 1. Ortalanmış Ana İçerik
+        Center(
+          child: Padding(
+            // Kenarlardan biraz boşluk bırak, ikon ve alt yazı için dikey boşluk ayarla
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 80.0), // Dikey padding korunuyor
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center, // Dikeyde ortala
+              crossAxisAlignment: CrossAxisAlignment.center, // Yatayda ortala
+              children: [
+                // Uygulama İkonu
+                Icon(
+                  Icons.auto_stories_rounded, // Dolgun ikon
+                  size: 70,
+                  color: colorScheme.primary.withOpacity(0.9), // Primary renk, hafif opaklık
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
-              // Günün Tarihi
-              Text(
-                formattedDate,
-                style: textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                // Uygulama Adı
+                Text(
+                  'Mind Vault',
+                  style: textTheme.headlineLarge?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
+                const SizedBox(height: 10),
 
-              // İlham Verici Söz veya Yazma İstemi
-              Text(
-                '"Bugün zihninde keşfedilmeyi bekleyen neler var?"', // Örnek
-                style: textTheme.bodyLarge?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: colorScheme.onSurface.withOpacity(0.7),
+                // Günün Tarihi
+                Text(
+                  formattedDate,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.9),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
+                const SizedBox(height: 35),
 
-              // FAB zaten MainScreen'de olduğu için burada ek butona gerek olmayabilir.
-              // Gerekirse eklenebilir:
-              // const SizedBox(height: 40),
-              // ElevatedButton.icon(
-              //   onPressed: () {
-              //     Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditJournalScreen()));
-              //   },
-              //   icon: const Icon(Icons.edit_note_rounded),
-              //   label: const Text('Yazmaya Başla'),
-              // )
-            ],
+                // İlham Verici Söz veya Yazma İstemi
+                Text(
+                  '"Düşünceleriniz sizin özel alanınızdır."',
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: colorScheme.onSurface.withOpacity(0.75),
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+
+        // 2. "Why Mind Vault?" İkonu (Sağ Üst, 3:4 Oranlı Uzaklık)
+        Positioned(
+          // ****** DEĞİŞİKLİK: Konum güncellendi (3:4 oranlı boşluk) ******
+          top: 33.0,  // Üstten 3 birim (örnek değer)
+          right: 20.0, // Sağdan 4 birim (örnek değer)
+          // left: null, // left kaldırıldı
+          child: IconButton( // TextButton yerine IconButton
+            icon: Icon(
+              // ****** DEĞİŞİKLİK: Kalın/Belirgin ikon, renk ve opaklık isteğe göre ******
+              Icons.info_outline, // veya Icons.security_rounded, Icons.help_rounded
+              color: colorScheme.onPrimary.withOpacity(0.8), // Primary olmayan, opak bir renk (örn: secondary)
+              size: 31//Belirgin boyut
+            ),
+            tooltip: 'Neden Mind Vault?', // Tıklandığında veya üzerine gelindiğinde görünen yazı
+            // IconButton'un etrafında varsayılan olarak bir miktar boşluk bulunur (hitbox için)
+            // padding: EdgeInsets.zero, // Gerekirse iç boşluğu sıfırla
+            constraints: const BoxConstraints(), // Gerekirse boyut kısıtlamalarını kaldır
+            onPressed: () {
+              // OnboardingScreen'e yönlendirme
+              // Kendi OnboardingScreen importunuzu ve yönlendirmenizi ekleyin
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+              );
+            },
+          ),
+        ),
+
+        // 3. En Alt Ortadaki Gizlilik Bilgisi Metni (Konumu aynı)
+      ],
     );
   }
 }

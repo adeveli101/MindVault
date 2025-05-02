@@ -1,5 +1,6 @@
 // lib/features/explore/screens/explore_screen.dart (Detaylı Önizlemeli Keşfet Ekranı)
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
@@ -33,7 +34,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (_availableBaseThemes.isEmpty) {
       _selectedPreviewIndex = 0; // veya -1 gibi geçersiz bir değer
       _currentAppliedBaseStyle = NotebookThemeType.defaultLightMedium; // Varsayılan
-      print("UYARI: Gösterilecek tema bulunamadı!");
+      if (kDebugMode) {
+        if (kDebugMode) {
+          print("UYARI: Gösterilecek tema bulunamadı!");
+        }
+      }
       return;
     }
 
@@ -81,9 +86,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
           _currentAppliedBaseStyle = themeToApply.type;
         });
       }
-      print("${themeToApply.name} teması uygulandı (Index: $themeIndex).");
+      if (kDebugMode) {
+        print("${themeToApply.name} teması uygulandı (Index: $themeIndex).");
+      }
     } else {
-      print("Hata: ${themeToApply.name} (${themeToApply.type}) için index bulunamadı.");
+      if (kDebugMode) {
+        print("Hata: ${themeToApply.name} (${themeToApply.type}) için index bulunamadı.");
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tema uygulanırken bir hata oluştu.')),
       );
@@ -316,7 +325,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 Image.asset(
                   theme.backgroundAssetPath,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(color: theme.materialTheme.colorScheme.surfaceVariant),
+                  errorBuilder: (context, error, stackTrace) => Container(color: theme.materialTheme.colorScheme.onInverseSurface),
                 ),
                 // Kilit ikonu (küçük)
                 if (isLocked)

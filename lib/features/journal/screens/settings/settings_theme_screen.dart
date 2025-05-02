@@ -2,7 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mindvault/features/journal/screens/home/explore_screen.dart';
+import 'package:mindvault/features/journal/screens/explore/explore_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 // Paket adınız 'mindvault' ise aşağıdaki gibi olmalı. Değilse düzeltin.
 // BU DOSYADAKİ VE DİĞER TÜM DOSYALARDAKİ YOLLAR AYNI OLMALI!

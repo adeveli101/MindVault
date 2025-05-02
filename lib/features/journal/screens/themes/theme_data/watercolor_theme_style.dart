@@ -16,7 +16,7 @@ class WatercolorThemeStyle {
   static const Color _primary = Color(0xFFBA68C8); // Yumuşak Mor (Vurgu)
   static const Color _secondary = Color(0xFF4DB6AC); // Yumuşak Teal (İkincil)
   static const Color _tertiary = Color(0xFFF06292); // Yumuşak Pembe (Ekstra)
-  static const Color _onPrimary = Color(0xFFFFFFFF); // Mor üzerine Beyaz
+  static const Color _onPrimary = Color(0xFFF06292); // Mor üzerine Beyaz
   static const Color _onSecondary = Color(0xFFFFFFFF); // Teal üzerine Beyaz
   static const Color _onTertiary = Color(0xFFFFFFFF); // Pembe üzerine Beyaz
   static const Color _surface = Color(0xFFFFFFFF); // Beyaz Yüzey (Kağıt)

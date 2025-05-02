@@ -1,13 +1,21 @@
-// lib/screens/main_screen.dart (Kaydırmalı Geçiş Eklendi)
+// lib/screens/main_screen.dart
+// Responsive, Sabit Özel Alt Navigasyonlu Tam Kod
+// Değişiklikler: Navigasyon Metin Stili güncellendi, ThemeConfig'e uygunluk varsayıldı.
 
 import 'package:flutter/material.dart';
-import 'package:mindvault/features/journal/screens/home/explore_screen.dart';
+import 'package:mindvault/features/journal/screens/calendar_page.dart';
+import 'package:mindvault/features/journal/screens/explore/explore_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 import 'package:mindvault/features/journal/screens/home/home_screen.dart';
-import 'package:mindvault/features/journal/screens/home/settings_screen.dart';
+import 'package:mindvault/features/journal/screens/settings/settings_screen.dart';
 import 'package:mindvault/features/journal/screens/page_screens/add_edit_journal_screen.dart';
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
+// ThemeConfig'i import etmeye gerek yok, Theme.of(context) kullanılacak.
+// =====================================================================
 
+
+
+// SettingsHostScreen import edildiği varsayılıyor veya yukarıdaki gibi tanımlı.
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,50 +26,45 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  // PageView'ı kontrol etmek için PageController eklendi
   late PageController _pageController;
 
-  // Gösterilecek ekranların listesi (HomeScreen import edildi, diğerleri placeholder)
-  static const List<Widget> _widgetOptions = <Widget>[
-    HomeScreen(),
-    ExploreScreen(), // Placeholder - Kendi ekranınızı ekleyin
-    CalendarScreen(), // Placeholder - Kendi ekranınızı ekleyin
-    SettingsHostScreen(), // Placeholder - Kendi ekranınızı ekleyin
+  // --- Navigasyon Çubuğu ve FAB Ayarları (Önceki değerler korunuyor) ---
+  static const double kBottomNavHeight = 65.0;
+  static const double kBottomNavBottomMargin = 32.0;
+  static const double kFabSize = 56.0;
+  static const double kFabBottomOffset = 95.0; // FAB yukarıda
+
+  // Gösterilecek ekranların listesi
+  static final List<Widget> _widgetOptions = <Widget>[
+    const HomeScreen(),
+    const ExploreScreen(),
+    const CalendarPage(),
+    SettingsHostScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
-    // PageController'ı başlangıç sayfasıyla başlat
     _pageController = PageController(initialPage: _selectedIndex);
   }
 
   @override
   void dispose() {
-    // Controller'ı dispose et
     _pageController.dispose();
     super.dispose();
   }
 
   /// Alt çubuktan bir öğeye tıklandığında çağrılır
   void _onItemTapped(int index) {
-    // PageView'ı animasyonlu veya doğrudan o sayfaya götür
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300), // Geçiş animasyon süresi
-      curve: Curves.easeInOut, // Geçiş efekti
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
     );
-    // setState ile _selectedIndex'i güncellemeye gerek yok,
-    // çünkü onPageChanged bunu zaten yapacak.
-    // Ancak anlık tepki için setState de çağrılabilir:
-    // setState(() {
-    //   _selectedIndex = index;
-    // });
   }
 
   /// PageView kaydırıldığında çağrılır
   void _onPageChanged(int index) {
-    // Seçili indeksi güncelle (BottomAppBar'ın doğru ikonu göstermesi için)
     if (mounted) {
       setState(() {
         _selectedIndex = index;
@@ -71,79 +74,158 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double horizontalPadding = screenWidth * 0.05; // Yan boşluklar %5
+
+    // PageView içeriğinin alt navigasyonun arkasında kalmaması için gereken boşluk
+    final double pageViewBottomPadding = kBottomNavHeight + kBottomNavBottomMargin + 10;
+
+    // Temayı al (ThemeConfig ile ayarlandığı varsayılıyor)
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme; // ThemeConfig'den gelen TextTheme
+    final colorScheme = theme.colorScheme; // ThemeConfig'den gelen ColorScheme
 
-    // ThemedBackground tüm yapıyı sarar
-    return ThemedBackground(
+    return ThemedBackground( // ThemedBackground temanın arka planını uygular
       child: Scaffold(
-        backgroundColor: Colors.transparent,
-        // Body kısmında artık PageView kullanılıyor
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged, // Sayfa değiştiğinde indeksi güncelle
-          children: _widgetOptions, // Gösterilecek sayfalar
-          // physics: const BouncingScrollPhysics(), // İsteğe bağlı: Kaydırma fiziği
-        ),
-
-        floatingActionButton: _selectedIndex == 0 // Sadece Günlük sekmesinde göster
-            ? FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const AddEditJournalScreen()),
-            );
-          },
-          tooltip: 'Yeni Günlük Girişi',
-          child: const Icon(Icons.add_rounded),
-        )
-            : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-        // Alt Navigasyon Çubuğu (BottomAppBar)
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 6.0,
-          color: colorScheme.surfaceContainer.withOpacity(0),
-          elevation: 8.0,
-          child: SizedBox(
-            height: 45,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                _buildNavItem(context, Icons.notes_rounded,
-                    Icons.notes_outlined, 'Günlük', 0),
-                _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, 'Keşfet', 1),
-                const SizedBox(width: 40), // FAB boşluğu
-                _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Takvim', 2),
-                _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, 'Ayarlar', 3),
-              ],
+        backgroundColor: Colors.transparent, // ThemedBackground üzerine şeffaf
+        body: Stack(
+          children: [
+            // Ana İçerik Alanı (PageView)
+            Padding(
+              padding: EdgeInsets.only(bottom: pageViewBottomPadding),
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                physics: const BouncingScrollPhysics(),
+                children: _widgetOptions,
+              ),
             ),
+
+            // Özel Alt Navigasyon Çubuğu
+            _buildCustomBottomNav(context, horizontalPadding, textTheme, colorScheme),
+
+            // Floating Action Button (Koşullu ve Ortalanmış)
+            if (_selectedIndex == 0)
+              Positioned(
+                left: screenWidth / 2 - kFabSize / 2, // Yatayda ortala
+                bottom: kFabBottomOffset, // Alt konumu ayarla (yukarıda)
+                child: FloatingActionButton(
+                  // FAB stili temadan alınır (floatingActionButtonTheme)
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AddEditJournalScreen()),
+                    );
+                  },
+                  tooltip: 'Yeni Günlük Girişi',
+                  elevation: 4.0,
+                  child: const Icon(Icons.add_rounded),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Özel Alt Navigasyon Çubuğu Oluşturucu ---
+  Widget _buildCustomBottomNav(BuildContext context, double horizontalPadding, TextTheme textTheme, ColorScheme colorScheme) {
+    // Konumlandırma ve genel container yapısı aynı
+    return Positioned(
+      bottom: kBottomNavBottomMargin,
+      left: horizontalPadding,
+      right: horizontalPadding,
+      child: Container(
+        height: kBottomNavHeight,
+        decoration: BoxDecoration(
+          color: Colors.transparent, // Arka plan şeffaf
+          borderRadius: BorderRadius.circular(kBottomNavHeight / 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              blurRadius: 12,
+              spreadRadius: 1,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(kBottomNavHeight / 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              // Navigasyon öğeleri oluşturulurken textTheme ve colorScheme gönderilir
+              _buildNavItem(context, Icons.notes_rounded, Icons.notes_outlined, 'Günlük', 0, textTheme, colorScheme),
+              _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, 'Keşfet', 1, textTheme, colorScheme),
+              _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Takvim', 2, textTheme, colorScheme),
+              _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, 'Ayarlar', 3, textTheme, colorScheme),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // BottomAppBar için navigasyon elemanı oluşturucu (öncekiyle aynı)
-  Widget _buildNavItem(BuildContext context, IconData activeIcon, IconData inactiveIcon, String label, int index) {
+  // --- Navigasyon Öğesi Oluşturucu ---
+  Widget _buildNavItem(
+      BuildContext context,
+      IconData activeIcon,
+      IconData inactiveIcon,
+      String label,
+      int index,
+      TextTheme textTheme, // Temadan gelen TextTheme alındı
+      ColorScheme colorScheme // Temadan gelen ColorScheme alındı
+      ) {
     final bool isSelected = _selectedIndex == index;
-    final Color color = isSelected ? Theme.of(context).colorScheme.primary :
-    Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.9);
 
-    return Expanded(
+    // İkon Rengi (Seçime göre değişmeye devam ediyor)
+    final Color selectedIconColor = colorScheme.primary; // Seçili ikon rengi
+    final Color unselectedIconColor = colorScheme.primary.withOpacity(0.8);   // Seçili olmayan ikon rengi
+    final Color iconColor = isSelected ? selectedIconColor : unselectedIconColor;
+
+    // İkon Boyutu (Seçime göre değişmeye devam ediyor)
+    final double iconSize = isSelected ? 24 : 24;
+
+    // ****** DEĞİŞİKLİK: Metin Stili isteğe göre ayarlandı ******
+    // Belirtilen stil kullanılıyor, seçili/seçili olmayan ayrımı yok.
+    final TextStyle labelStyle = textTheme.bodySmall?.copyWith( // Temanın bodyLarge stili temel alınıyor
+      fontStyle: FontStyle.italic,
+      fontWeight: FontWeight.bold,// İtalik
+      // Renk de sabit olarak ayarlanıyor
+      color: colorScheme.onSurface.withOpacity(1),
+    ) ?? const TextStyle( // Null gelme ihtimaline karşı fallback
+      fontStyle: FontStyle.italic,
+      color: Colors.grey, // Varsayılan renk
+      fontSize: 10, // bodyLarge null ise varsayılan boyut
+    );
+
+
+    return Flexible(
       child: InkWell(
-        onTap: () => _onItemTapped(index), // Tıklanınca PageView'ı kaydırır
-        customBorder: const CircleBorder(),
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(kBottomNavHeight / 2),
+        // Tıklama efekti rengi ikon rengine göre ayarlanabilir
+        splashColor: iconColor.withOpacity(0.1),
+        highlightColor: iconColor.withOpacity(0.05),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(isSelected ? activeIcon : inactiveIcon, color: color, size: 24), // Boyut ayarlandı
-              Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+              Icon(
+                isSelected ? activeIcon : inactiveIcon,
+                color: iconColor, // İkon rengi seçime göre değişiyor
+                size: iconSize,   // İkon boyutu seçime göre değişiyor
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: labelStyle, // ****** YENİ SABİT METİN STİLİ UYGULANDI ******
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ],
           ),
         ),
@@ -151,19 +233,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
-
-
-
-class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Takvim'), centerTitle: true, elevation: 0, backgroundColor: Colors.transparent),
-      body: const Center(child: Text('Takvim Ekranı İçeriği')),
-    );
-  }
-}
-

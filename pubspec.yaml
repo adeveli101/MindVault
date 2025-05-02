@@ -27,6 +27,7 @@ dependencies:
   speech_to_text: ^7.0.0
   stacked_themes: ^0.3.15
   font_awesome_flutter: ^10.8.0
+  popover: ^0.3.1
 
   #database
   hive: ^2.2.3
