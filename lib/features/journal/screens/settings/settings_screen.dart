@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mindvault/features/journal/screens/settings/settings_theme_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
-import 'package:mindvault/features/journal/screens/home/settings_theme_screen.dart';
 
 
 class SettingsHostScreen extends StatelessWidget {

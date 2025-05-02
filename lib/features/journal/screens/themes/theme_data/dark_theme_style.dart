@@ -52,8 +52,8 @@ class DarkThemeStyle {
   }) {
     final Brightness brightness = Brightness.dark;
     // Font Seçimi (Elegant Koyu Tema İçin)
-    final TextTheme baseText = GoogleFonts.cabinTextTheme(ThemeData(brightness: brightness).textTheme); // Temiz sans-serif
-    final String decorativeFont = GoogleFonts.playfairDisplay().fontFamily!; // Şık serif başlık
+    final TextTheme baseText = GoogleFonts.cinzelDecorativeTextTheme(ThemeData(brightness: brightness).textTheme); // Temiz sans-serif
+    final String decorativeFont = GoogleFonts.cinzelDecorative().fontFamily!; // Şık serif başlık
 
     return AppThemeData(
       type: type,

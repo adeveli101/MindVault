@@ -8,20 +8,71 @@ import 'package:uuid/uuid.dart';
 
 part 'journal_entry.g.dart'; // Hive Generator tarafından oluşturulacak dosya
 
-@HiveType(typeId: 1) // typeId 1: Mood Enum
+
+
+@HiveType(typeId: 1) // Doğru typeId kullandığınızdan emin olun
 enum Mood {
+  // Pozitif Duygular
   @HiveField(0) happy,
-  @HiveField(1) sad,
-  @HiveField(2) neutral,
-  @HiveField(3) excited,
-  @HiveField(4) anxious,
+  @HiveField(1) excited,
+  @HiveField(2) ecstatic,
+  @HiveField(3) grateful,
+  @HiveField(4) peaceful,
   @HiveField(5) calm,
-  @HiveField(6) angry,
-  @HiveField(7) grateful,
-  @HiveField(8) stressed,
-  @HiveField(9) tired,
-  @HiveField(10) unknown, // veya belirtilmemiş
+  @HiveField(6) content,
+  @HiveField(7) confident,
+  @HiveField(8) inspired,
+  @HiveField(9) hopeful,
+
+  // Nötr Duygular
+  @HiveField(10) neutral,
+  @HiveField(11) contemplative,
+  @HiveField(12) curious,
+  @HiveField(13) focused,
+  @HiveField(14) indifferent,
+  @HiveField(15) nostalgic,
+
+  // Negatif Duygular
+  @HiveField(16) sad,
+  @HiveField(17) melancholic,
+  @HiveField(18) anxious,
+  @HiveField(19) stressed,
+  @HiveField(20) overwhelmed,
+  @HiveField(21) tired,
+  @HiveField(22) exhausted,
+  @HiveField(23) angry,
+  @HiveField(24) frustrated,
+  @HiveField(25) jealous,
+  @HiveField(26) guilty,
+  @HiveField(27) embarrassed,
+  @HiveField(28) bored,
+  @HiveField(29) confused,
+
+  // Karma Duygular
+  @HiveField(30) bittersweet,
+  @HiveField(31) amused,
+  @HiveField(32) surprised,
+  @HiveField(33) awed,
+  @HiveField(34) determined,
+  @HiveField(35) vulnerable,
+  @HiveField(36) reflective,
+
+  // Fizyolojik Duygular
+  @HiveField(37) hungry,
+  @HiveField(38) energetic,
+  @HiveField(39) sleepy,
+  @HiveField(40) refreshed,
+
+  // Diğer
+  @HiveField(41) unknown,
+  @HiveField(42) creative,
+  @HiveField(43) motivated,
+  @HiveField(44) inLove,
+  @HiveField(45) generous,
+  @HiveField(46) proud,
+  @HiveField(47) relieved,
 }
+
 
 @HiveType(typeId: 0) // Benzersiz typeId (0: JournalEntry)
 // ignore: must_be_immutable
