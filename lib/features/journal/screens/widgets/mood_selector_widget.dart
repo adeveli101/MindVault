@@ -45,7 +45,7 @@ class _MoodSelectorWidgetState extends State<MoodSelectorWidget> {
   // Mood ikonları (Material veya eklenen paketlerden ikonlar kullanılabilir)
   // Öneri: Daha çeşitli ikonlar için bir ikon paketi kullanın.
 
-  final Map<Mood, IconData> _moodIcons = {
+  final Map<Mood, IconData> moodIcons = {
     // Pozitif Duygular
     Mood.happy: FontAwesomeIcons.faceSmile, // Mutlu
     Mood.excited: FontAwesomeIcons.bolt, // Heyecanlı, enerjik
@@ -302,7 +302,7 @@ class _MoodSelectorWidgetState extends State<MoodSelectorWidget> {
     final Color moodColor = _getColorForMood(mood, colorScheme);
     final Color bgColor = moodColor.withOpacity(0.15);
     final Color iconColor = moodColor;
-    final IconData iconData = _moodIcons[mood] ?? Icons.sentiment_neutral; // Fallback ikon
+    final IconData iconData = moodIcons[mood] ?? Icons.sentiment_neutral; // Fallback ikon
     final String moodName = _getMoodName(mood);
 
     return Tooltip(
@@ -352,7 +352,7 @@ class _MoodSelectorWidgetState extends State<MoodSelectorWidget> {
     final String tooltipText;
 
     if (isSelected) {
-      currentIcon = _moodIcons[_selectedMood!] ?? widget.defaultIcon;
+      currentIcon = moodIcons[_selectedMood!] ?? widget.defaultIcon;
       buttonBgColor = _getColorForMood(_selectedMood!, colorScheme);
       iconFgColor = _getOnColorForMood(buttonBgColor, context);
       tooltipText = _getMoodName(_selectedMood!);
