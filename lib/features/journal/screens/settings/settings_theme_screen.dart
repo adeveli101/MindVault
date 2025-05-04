@@ -206,11 +206,11 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
                   _buildThemeSelector(context, screenWidth), // Tema Seçici
                   const SizedBox(height: 16),
                   _buildSeeAllButton(context, primaryColor), // Tümünü Gör
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   _buildSizeSelectorSection(context, currentAppTheme), // Boyut Seçici
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   _buildPreviewSection(context, titleStyle), // Önizleme
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

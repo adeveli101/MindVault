@@ -43,7 +43,6 @@ class HomeScreen extends StatelessWidget {
                   size: 70,
                   color: colorScheme.primary.withOpacity(0.9), // Primary renk, hafif opaklık
                 ),
-                const SizedBox(height: 20),
 
                 // Uygulama Adı
                 Text(
@@ -64,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 35),
+                const SizedBox(height: 85),
 
                 // İlham Verici Söz veya Yazma İstemi
                 Text(
@@ -84,14 +83,14 @@ class HomeScreen extends StatelessWidget {
         // 2. "Why Mind Vault?" İkonu (Sağ Üst, 3:4 Oranlı Uzaklık)
         Positioned(
           // ****** DEĞİŞİKLİK: Konum güncellendi (3:4 oranlı boşluk) ******
-          top: 33.0,  // Üstten 3 birim (örnek değer)
-          right: 20.0, // Sağdan 4 birim (örnek değer)
+          top: 35.0,  // Üstten 3 birim (örnek değer)
+          right: 30.0, // Sağdan 4 birim (örnek değer)
           // left: null, // left kaldırıldı
           child: IconButton( // TextButton yerine IconButton
             icon: Icon(
               // ****** DEĞİŞİKLİK: Kalın/Belirgin ikon, renk ve opaklık isteğe göre ******
               Icons.info_outline, // veya Icons.security_rounded, Icons.help_rounded
-              color: colorScheme.onPrimary.withOpacity(0.8), // Primary olmayan, opak bir renk (örn: secondary)
+              color: colorScheme.primary.withOpacity(0.8), // Primary olmayan, opak bir renk (örn: secondary)
               size: 31//Belirgin boyut
             ),
             tooltip: 'Neden Mind Vault?', // Tıklandığında veya üzerine gelindiğinde görünen yazı

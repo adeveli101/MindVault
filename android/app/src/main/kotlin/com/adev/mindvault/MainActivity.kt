@@ -1,5 +1,11 @@
-package com.adev.mindvault
+package com.adev.mindvault // Kendi paket adınız
 
-import io.flutter.embedding.android.FlutterActivity
+// Gerekli import'u ekleyin
+import io.flutter.embedding.android.FlutterFragmentActivity
+// import io.flutter.embedding.engine.FlutterEngine // Genellikle gerekmez
+// import io.flutter.plugins.GeneratedPluginRegistrant // Genellikle gerekmez
 
-class MainActivity: FlutterActivity()
+// FlutterActivity yerine FlutterFragmentActivity kullanın
+class MainActivity: FlutterFragmentActivity() {
+    // Özel bir ayarınız yoksa içi boş kalabilir.
+}

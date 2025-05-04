@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mindvault/features/journal/screens/settings/lock/security_settings_screen.dart';
 import 'package:mindvault/features/journal/screens/settings/settings_theme_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 
@@ -39,7 +40,12 @@ class SettingsHostScreen extends StatelessWidget {
             title: const Text('Güvenlik'),
             subtitle: const Text('Şifre, biyometrik kilit'),
             trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            onTap: () { /* TODO */ },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SecuritySettingsScreen()),
+              );
+            },
           ),
           ListTile(
             leading: Icon(Icons.notifications_outlined, color: Theme.of(context).colorScheme.secondary),
