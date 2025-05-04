@@ -31,26 +31,29 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   static const double kFabSize = 56.0;
   static const double kFabBottomOffset = 95.0;
 
-  // *** DEĞİŞİKLİK: _widgetOptions static olmaktan çıkarıldı ve build metodunda oluşturulacak ***
   // Widget listesi artık state'e bağlı (TabController nedeniyle)
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
-    // *** YENİ: TabController başlatılıyor (CalendarPage'deki sekme sayısına göre length ayarla - örneğin 2) ***
+    // CalendarPage'deki sekme sayısına göre length ayarla (örneğin 2)
     _calendarTabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _calendarTabController.dispose(); // *** YENİ: TabController dispose ediliyor ***
+    _calendarTabController.dispose(); // TabController dispose ediliyor
     super.dispose();
   }
 
   /// Alt çubuktan bir öğeye tıklandığında çağrılır
   void _onItemTapped(int index) {
+    // Eğer zaten o sayfadaysak ve sayfa CalendarPage ise işlem yapma
+    // (isteğe bağlı, TabBar'ın kendi kendine yetmesi için)
+    // if (_selectedIndex == index && index == 1) return;
+
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 350),
@@ -63,6 +66,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     if (mounted) {
       setState(() {
         _selectedIndex = index;
+        // Eğer CalendarPage'e gelindiyse TabController'ı senkronize et (isteğe bağlı)
+        // if (index == 1) {
+        //   _calendarTabController.index = DefaultTabController.of(context)?.index ?? 0;
+        // }
       });
     }
   }
@@ -80,43 +87,37 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
 
-    // Widget listesi build içinde oluşturuluyor
+    // Widget listesi build içinde oluşturuluyor (Sıralama önemli!)
     final List<Widget> widgetOptions = <Widget>[
-      const HomeScreen(),
-      const ExploreScreen(),
-      CalendarPage(tabController: _calendarTabController), // Controller iletiliyor
-      SettingsHostScreen(),
+      const HomeScreen(),                               // Index 0
+      CalendarPage(tabController: _calendarTabController), // Index 1 <--- TAKVİM BURADA
+      const ExploreScreen(),                            // Index 2
+      SettingsHostScreen(),                             // Index 3
     ];
 
-    // *** YENİ: Koşullu AppBar ***
-    // Sadece Takvim sekmesi (_selectedIndex == 2) aktifken AppBar gösterilecek
-    final PreferredSizeWidget? currentAppBar = _selectedIndex == 2
+    // *** DEĞİŞİKLİK: Koşullu AppBar kontrolü index 1'e göre yapılıyor ***
+    // Sadece Takvim sekmesi (_selectedIndex == 1) aktifken AppBar gösterilecek
+    final PreferredSizeWidget? currentAppBar = _selectedIndex == 1
         ? AppBar(
-      // *** DEĞİŞİKLİK: AppBar Ayarları ***
-      backgroundColor: Colors.transparent, // Veya Colors.transparent yapabilirsiniz
-      elevation: 0, // Gölgelenmeyi ve alt çizgiyi kaldırır
-      // ----------------------------------
+      backgroundColor: Colors.transparent, // Veya temanıza uygun renk
+      elevation: 0,
       title: Text(
-        'Kayıtlar',
+        'Kayıtlar', // Veya 'Takvim' gibi daha uygun bir başlık
         style: TextStyle(color: colorScheme.onSurface),
       ),
       centerTitle: true,
       bottom: TabBar(
         controller: _calendarTabController,
-        // *** DEĞİŞİKLİK: TabBar Ayarları ***
-        indicatorColor: Colors.transparent, // Gösterge çizgisini kaldırır (önceki adımdan)
-        dividerColor: Colors.transparent, // Sekmelerin altındaki ayırıcı çizgiyi kaldırır
-        dividerHeight: 0, // Ayırıcı çizgi yüksekliğini sıfırlar (isteğe bağlı, garanti için)
-        // -----------------------------------
-        labelColor: colorScheme.primary, // Seçili etiket rengi (kalabilir veya isteğe bağlı)
+        indicatorColor: colorScheme.primary, // Gösterge rengini tema primary yap
+        dividerColor: Colors.transparent,
+        dividerHeight: 0,
+        labelColor: colorScheme.primary,
         labelStyle: const TextStyle(
-          fontWeight: FontWeight.bold, // Seçili etiketi kalın yap
-          // fontSize: 15, // İsterseniz boyutunu da ayarlayabilirsiniz
+          fontWeight: FontWeight.bold,
         ),
-        unselectedLabelColor: colorScheme.onSurfaceVariant, // Seçili olmayan etiket rengi (kalabilir veya isteğe bağlı)
+        unselectedLabelColor: colorScheme.onSurfaceVariant,
         unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.normal, // Seçili olmayan etiket normal kalsın
-          // fontSize: 14, // İsterseniz boyutunu da ayarlayabilirsiniz
+          fontWeight: FontWeight.normal,
         ),
         tabs: const <Widget>[
           Tab(text: 'Liste'),
@@ -124,28 +125,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         ],
       ),
     )
-        : null;// Diğer sayfalarda AppBar olmayacak
+        : null; // Diğer sayfalarda AppBar olmayacak
 
     return ThemedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        // *** YENİ: Koşullu olarak AppBar atanıyor ***
-        appBar: currentAppBar,
+        appBar: currentAppBar, // Koşullu AppBar atanıyor
         body: Stack(
           children: [
             // Ana İçerik Alanı (PageView)
             Padding(
-              // *** ÖNEMLİ: AppBar varsa, PageView'ın üstten başlaması için padding'i ayarlayın ***
-              // Eğer AppBar varsa, içeriğin AppBar'ın altında kalmaması için üst padding gerekir.
-              // Ancak ThemedBackground tüm alanı kaplıyorsa ve AppBar şeffaf değilse
-              // bu padding'e gerek olmayabilir veya farklı bir yaklaşım gerekebilir.
-              // Şimdilik sadece alt padding'i bırakıyoruz, gerekirse ayarlama yaparız.
+              // AppBar varsa PageView içeriğinin altından başlamaması için üst padding eklenebilir
+              // Ancak ThemedBackground tüm alanı kapladığı için genellikle gerekmez.
+              // Sadece alt padding'i bırakıyoruz.
               padding: EdgeInsets.only(bottom: pageViewBottomPadding),
               child: PageView(
                 controller: _pageController,
                 onPageChanged: _onPageChanged,
                 physics: const BouncingScrollPhysics(),
-                children: widgetOptions,
+                children: widgetOptions, // Doğru sıralanmış widget listesi
               ),
             ),
 
@@ -153,7 +151,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             _buildCustomBottomNav(context, horizontalPadding, textTheme, colorScheme),
 
             // Floating Action Button (Koşullu ve Ortalanmış)
-            if (_selectedIndex == 0) // FAB sadece ilk sayfada (Home) görünür
+            // FAB sadece ilk sayfada (Home - index 0) görünür
+            if (_selectedIndex == 0)
               Positioned(
                 left: screenWidth / 2 - kFabSize / 2,
                 bottom: kFabBottomOffset,
@@ -177,7 +176,6 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
 
   // --- Özel Alt Navigasyon Çubuğu Oluşturucu ---
-  // (Bu kısım önceki kodunuzla aynı, değişiklik yok)
   Widget _buildCustomBottomNav(BuildContext context, double horizontalPadding, TextTheme textTheme, ColorScheme colorScheme) {
     return Positioned(
       bottom: kBottomNavBottomMargin,
@@ -186,11 +184,12 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       child: Container(
         height: kBottomNavHeight,
         decoration: BoxDecoration(
-          color: Colors.transparent, // Hafif yarı saydam arka plan
+          // Arka plan rengini temadan almak daha dinamik olabilir
+          color: Colors.transparent, // Hafif yarı saydam yüzey rengi
           borderRadius: BorderRadius.circular(kBottomNavHeight / 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1), // Daha belirgin gölge
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 15,
               spreadRadius: 2,
               offset: const Offset(0, 4),
@@ -203,10 +202,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              _buildNavItem(context, Icons.notes_rounded, Icons.notes_outlined, 'Günlük', 0, textTheme, colorScheme),
-              _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, 'Keşfet', 1, textTheme, colorScheme),
-              _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Takvim', 2, textTheme, colorScheme),
-              _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, 'Ayarlar', 3, textTheme, colorScheme),
+              // *** DEĞİŞİKLİK: Index'ler widgetOptions listesindeki sıraya göre güncellendi ***
+              _buildNavItem(context, Icons.notes_rounded,
+                  Icons.notes_outlined, 'Ana Sayfa',
+                  0, textTheme, colorScheme), // Index 0 -> HomeScreen
+              _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Takvim', 1, textTheme, colorScheme), // Index 1 -> CalendarPage <--- DÜZELTİLDİ
+              _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, 'Keşfet', 2, textTheme, colorScheme), // Index 2 -> ExploreScreen <--- DÜZELTİLDİ
+              _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, 'Ayarlar', 3, textTheme, colorScheme), // Index 3 -> SettingsHostScreen
             ],
           ),
         ),
@@ -215,25 +217,24 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   }
 
   // --- Navigasyon Öğesi Oluşturucu ---
-  // (Bu kısım önceki kodunuzla aynı, değişiklik yok)
+  // (Bu kısım önceki kodunuzla aynı, sadece index parametresi önemli)
   Widget _buildNavItem(
       BuildContext context,
       IconData activeIcon,
       IconData inactiveIcon,
       String label,
-      int index,
+      int index, // <--- Bu index artık _widgetOptions'daki gerçek sırayı temsil ediyor
       TextTheme textTheme,
       ColorScheme colorScheme
       ) {
     final bool isSelected = _selectedIndex == index;
     final Color selectedIconColor = colorScheme.primary;
-    final Color unselectedIconColor = colorScheme.onSurfaceVariant.withOpacity(0.7); // Daha soluk
+    final Color unselectedIconColor = colorScheme.onSurfaceVariant.withOpacity(0.7);
     final Color iconColor = isSelected ? selectedIconColor : unselectedIconColor;
-    final double iconSize = isSelected ? 26 : 24; // Seçiliyken biraz daha büyük
-    final FontWeight labelWeight = isSelected ? FontWeight.bold : FontWeight.normal;
+    final double iconSize = isSelected ? 26 : 24;
+    final FontWeight labelWeight = isSelected ? FontWeight.bold : FontWeight.w900;
     final Color labelColor = isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
-    // Önceki kodunuzdaki gibi özel stil yerine daha standart bir yaklaşım:
     final TextStyle labelStyle = textTheme.bodySmall?.copyWith(
         fontWeight: labelWeight,
         color: labelColor,
@@ -244,14 +245,14 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       fontSize: 10,
     );
 
-    return Expanded( // Expanded ile daha iyi esneklik
+    return Expanded(
       child: InkWell(
-        onTap: () => _onItemTapped(index),
-        borderRadius: BorderRadius.circular(kBottomNavHeight / 4), // Daha hafif köşe yuvarlama
+        onTap: () => _onItemTapped(index), // Doğru index ile _onItemTapped çağrılıyor
+        borderRadius: BorderRadius.circular(kBottomNavHeight / 4),
         splashColor: selectedIconColor.withOpacity(0.1),
         highlightColor: selectedIconColor.withOpacity(0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0), // Dikey padding
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -261,7 +262,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 color: iconColor,
                 size: iconSize,
               ),
-              const SizedBox(height: 4), // İkon ve metin arası boşluk
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: labelStyle,

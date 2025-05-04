@@ -1,14 +1,16 @@
-// lib/features/explore/screens/explore_screen.dart (Detaylı Önizlemeli Keşfet Ekranı)
+// lib/features/explore/screens/explore_screen.dart (Yeniden Yapılandırıldı V2: Uygulanan Sola, Otomatik Kaydırma)
+// Bu ekran tema UYGULAMAZ. Sadece stilleri gösterir, uygulananı sola alır,
+// tıklanan minik resme kayar ve seçilen stili ayarlamak üzere Ayarlar'a geri döner.
 
+import 'dart:math'; // clamp için eklendi
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
+// ========== !!! Gerekli Import'lar !!! ==========
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
 import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart';
 import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
-import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
-// =====================================================================
 import 'package:stacked_themes/stacked_themes.dart';
+// =================================================
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -18,48 +20,152 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  // Gösterilecek temsilci temalar (Orta boyutlular)
-  late final List<AppThemeData> _availableBaseThemes;
-  // Üstte detaylı gösterilen temanın index'i
-  late int _selectedPreviewIndex;
-  // Mevcut uygulanan temanın temel stili (alttaki listede vurgulamak için)
-  late NotebookThemeType _currentAppliedBaseStyle;
+  // --- State Variables ---
+  late final List<AppThemeData> _originalBaseThemes; // Temaların orijinal sırası
+  late List<AppThemeData> _displayThemes; // Ekranda gösterilecek, yeniden sıralanmış liste
+  late int _selectedPreviewIndex; // _originalBaseThemes listesindeki seçili index
+  late NotebookThemeType? _currentAppliedBaseStyle;
+  bool _isLoading = true;
+  late ScrollController _scrollController; // Thumbnail listesi için scroll controller
 
+  // Sabitler
+  static const double _thumbnailWidth = 80.0;
+  static const double _thumbnailPaddingRight = 12.0;
+  static const double _thumbnailTotalWidth = _thumbnailWidth + _thumbnailPaddingRight;
+  static const double _listHorizontalPadding = 16.0;
+
+
+  // --- Lifecycle Methods ---
   @override
   void initState() {
-    super.initState();
-    _availableBaseThemes = ThemeConfig.getBaseThemeRepresentations();
+    super.initState(); // Önce super.initState() çağrılmalı
+    _scrollController = ScrollController();
+    _initializeExploreScreen();
+  }
 
-    // Eğer tema listesi boşsa hata oluşmasın
-    if (_availableBaseThemes.isEmpty) {
-      _selectedPreviewIndex = 0; // veya -1 gibi geçersiz bir değer
-      _currentAppliedBaseStyle = NotebookThemeType.defaultLightMedium; // Varsayılan
-      if (kDebugMode) {
-        if (kDebugMode) {
-          print("UYARI: Gösterilecek tema bulunamadı!");
-        }
-      }
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Controller'ı dispose et
+    super.dispose();
+  }
+
+  /// Ekran state'ini başlatan asenkron yardımcı metod.
+  Future<void> _initializeExploreScreen() async {
+    // Temaları yükle (orijinal sırayla sakla)
+    _originalBaseThemes = ThemeConfig.getBaseThemeRepresentations();
+
+    if (!mounted || _originalBaseThemes.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _displayThemes = []; // Boş liste ata
+      });
+      if (kDebugMode) { print("ExploreScreen UYARI: Gösterilecek tema bulunamadı!"); }
       return;
     }
 
-    // Mevcut uygulanan temayı al
-    final themeManager = getThemeManager(context);
-    final currentThemeIndex = themeManager.selectedThemeIndex ?? 0;
-    final currentThemeType = ThemeConfig.getThemeTypeByIndex(currentThemeIndex);
-    _currentAppliedBaseStyle = ThemeConfig.getBaseStyle(currentThemeType);
+    // Context gerektiren işlemler için callback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return; // Callback çalıştığında widget hala mount edilmiş mi?
 
-    // Başlangıçta gösterilecek önizleme, mevcut uygulanan tema olsun
-    _selectedPreviewIndex = _availableBaseThemes.indexWhere(
-          (theme) => theme.type == _currentAppliedBaseStyle,
-    );
-    // Eğer mevcut tema listede bulunamazsa ilk temayı göster
-    if (_selectedPreviewIndex == -1) {
+      try {
+        final themeManager = getThemeManager(context);
+        final currentThemeIndex = themeManager.selectedThemeIndex ?? 0;
+        final currentThemeType = ThemeConfig.getThemeTypeByIndex(currentThemeIndex);
+        _currentAppliedBaseStyle = ThemeConfig.getBaseStyle(currentThemeType);
+
+        // Başlangıçta seçili önizleme, mevcut uygulanan tema olsun
+        _selectedPreviewIndex = _originalBaseThemes.indexWhere(
+              (theme) => ThemeConfig.getBaseStyle(theme.type) == _currentAppliedBaseStyle,
+        );
+        if (_selectedPreviewIndex == -1) _selectedPreviewIndex = 0; // Bulamazsa ilkini seç
+
+      } catch (e) {
+        if (kDebugMode) { print("ExploreScreen initState HATA: Tema bilgileri alınırken sorun oluştu - $e"); }
+        _currentAppliedBaseStyle = ThemeConfig.getBaseStyle(_originalBaseThemes.first.type);
+        _selectedPreviewIndex = 0;
+      } finally {
+        // Gösterilecek listeyi hazırla ve yüklemeyi bitir
+        _updateDisplayThemes(); // Uygulanmışı başa alacak
+        setState(() => _isLoading = false);
+        // Başlangıçta uygulanan temaya scroll yap (eğer varsa ve başta değilse)
+        _scrollToAppliedThemeIfNeeded(initial: true);
+      }
+    });
+  }
+
+  /// _displayThemes listesini, uygulanan temayı başa alarak günceller.
+  void _updateDisplayThemes() {
+    if (_originalBaseThemes.isEmpty) {
+      _displayThemes = [];
+      return;
+    }
+
+    _displayThemes = List.from(_originalBaseThemes); // Kopyasını oluştur
+    if (_currentAppliedBaseStyle != null) {
+      final appliedIndex = _displayThemes.indexWhere(
+              (theme) => ThemeConfig.getBaseStyle(theme.type) == _currentAppliedBaseStyle);
+
+      if (appliedIndex > 0) { // Eğer bulunduysa ve zaten başta değilse
+        final appliedTheme = _displayThemes.removeAt(appliedIndex);
+        _displayThemes.insert(0, appliedTheme);
+      }
+    }
+    // Eğer seçili önizleme index'i artık geçerli değilse (nadiren olmalı), sıfırla.
+    if (_selectedPreviewIndex >= _originalBaseThemes.length) {
       _selectedPreviewIndex = 0;
     }
   }
 
-  // Tema tipi enum'ından okunabilir bir stil adı döndürür
+  /// Gerekliyse, thumbnail listesini uygulanan temaya kaydırır.
+  void _scrollToAppliedThemeIfNeeded({bool initial = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients || _currentAppliedBaseStyle == null) return;
+
+      // Uygulanan temanın _displayThemes listesindeki index'ini bul (artık 0 olmalı)
+      final appliedDisplayIndex = _displayThemes.indexWhere(
+              (theme) => ThemeConfig.getBaseStyle(theme.type) == _currentAppliedBaseStyle);
+
+      if (appliedDisplayIndex == 0 && _scrollController.offset > 0) { // Eğer başta ve scroll 0'da değilse
+        _scrollController.animateTo(
+          0.0, // En başa git
+          duration: Duration(milliseconds: initial ? 500 : 300),
+          curve: Curves.easeInOut,
+        );
+      }
+      // Not: Tıklama ile kaydırma _handleThumbnailTap içinde yapılacak.
+    });
+  }
+
+  /// Gerekliyse, thumbnail listesini belirtilen index'e (display listesindeki) kaydırır.
+  void _scrollToThumbnail(int displayIndex) {
+    if (!_scrollController.hasClients || displayIndex < 0) return;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final effectiveViewportWidth = screenWidth - (_listHorizontalPadding * 2);
+
+    // Hedeflenen item'ın ortasının olması gereken offset
+    final targetCenterOffset = (displayIndex * _thumbnailTotalWidth) + (_thumbnailTotalWidth / 2);
+
+    // Viewport'un ortasına getirmek için gereken scroll offset'i
+    var scrollToOffset = targetCenterOffset - (effectiveViewportWidth / 2);
+
+    // Scroll offset'ini geçerli sınırlar içinde tut (0 ve maxScrollExtent arası)
+    scrollToOffset = scrollToOffset.clamp(
+        0.0,
+        _scrollController.position.maxScrollExtent
+    );
+
+    _scrollController.animateTo(
+      scrollToOffset,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // --- Helper Methods ---
+
   String _getBaseStyleName(NotebookThemeType type) {
+    // ... (önceki kodla aynı) ...
     String typeName = type.toString().split('.').last;
     typeName = typeName.replaceAll('Small', '').replaceAll('Medium', '').replaceAll('Large', '');
     if (typeName == 'defaultLight') return "Aydınlık";
@@ -73,173 +179,159 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return typeName;
   }
 
-  /// Seçilen temayı uygulama geneline uygular (Orta boyutu)
-  void _applyTheme(BuildContext context, AppThemeData themeToApply) {
-    final themeManager = getThemeManager(context);
-    // Uygulanacak temanın (muhtemelen Medium varyant) ana listedeki indeksini bul
-    final themeIndex = ThemeConfig.getIndexByThemeType(themeToApply.type);
-    if (themeIndex != -1) {
-      themeManager.selectThemeAtIndex(themeIndex);
-      // State'i güncelleyerek alttaki listede seçili olanı da güncelle
-      if(mounted) {
-        setState(() {
-          _currentAppliedBaseStyle = themeToApply.type;
-        });
-      }
-      if (kDebugMode) {
-        print("${themeToApply.name} teması uygulandı (Index: $themeIndex).");
-      }
+  void _navigateToSettingsWithStyle(NotebookThemeType selectedStyle) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context, selectedStyle);
     } else {
-      if (kDebugMode) {
-        print("Hata: ${themeToApply.name} (${themeToApply.type}) için index bulunamadı.");
-      }
+      if (kDebugMode) { print("Hata: Settings ekranına geri dönülemiyor."); }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tema uygulanırken bir hata oluştu.')),
+        const SnackBar(content: Text('Ayarlar ekranına dönülemedi.')),
       );
     }
   }
 
+  /// Thumbnail'a tıklandığında çalışır.
+  void _handleThumbnailTap(AppThemeData tappedThemeData, int tappedDisplayIndex) {
+    // Tıklanan temanın orijinal listemizdeki index'ini bul
+    final originalIndex = _originalBaseThemes.indexWhere(
+            (theme) => theme.type == tappedThemeData.type);
 
+    if (originalIndex != -1 && mounted && _selectedPreviewIndex != originalIndex) {
+      setState(() {
+        // Seçili önizleme index'ini (orijinal listeye göre) güncelle
+        _selectedPreviewIndex = originalIndex;
+      });
+      // Tıklanan thumbnail'a doğru kaydır (display listesindeki index'e göre)
+      _scrollToThumbnail(tappedDisplayIndex);
+    }
+  }
+
+  // --- Build Method ---
   @override
   Widget build(BuildContext context) {
-    // Eğer başlangıçta tema yüklenemediyse boş ekran göster
-    if (_availableBaseThemes.isEmpty) {
-      return const ThemedBackground(child: Scaffold(backgroundColor: Colors.transparent, body: Center(child: Text("Tema bulunamadı."))));
+    // Yükleme veya Hata Durumları
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_displayThemes.isEmpty) { // _displayThemes kontrolü
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text(
+            "Temalar yüklenemedi veya bulunamadı.",
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
     }
 
-    // Önizlemede gösterilecek tema
-    final AppThemeData selectedPreviewTheme = _availableBaseThemes[_selectedPreviewIndex];
+    // _selectedPreviewIndex'in geçerliliğini kontrol et (çok nadir bir durum)
+    if (_selectedPreviewIndex < 0 || _selectedPreviewIndex >= _originalBaseThemes.length) {
+      _selectedPreviewIndex = 0;
+    }
+    final AppThemeData selectedPreviewTheme = _originalBaseThemes[_selectedPreviewIndex];
 
-    return ThemedBackground( // Ana uygulamanın temasıyla arka plan
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('Temaları Keşfet'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- Üst Kısım: Detaylı Önizleme ---
-            Expanded(
-              flex: 3, // Daha fazla yer kaplasın
-              child: _buildDetailPreview(context, selectedPreviewTheme),
-            ),
-            // --- Alt Kısım: Kaydırılabilir Küçük Önizlemeler ---
-            _buildThumbnailList(context),
-          ],
-        ),
+    // Ana İçerik
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0, bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Bölüm 1: Detaylı Önizleme
+          Expanded(
+            flex: 5,
+            child: _buildDetailPreview(context, selectedPreviewTheme),
+          ),
+          const SizedBox(height: 16),
+
+          // Bölüm 2: Thumbnail Listesi
+          SizedBox(
+            height: 110,
+            child: _buildThumbnailList(context),
+          ),
+        ],
       ),
     );
   }
 
-  /// Üstteki detaylı önizleme alanını oluşturur
+  // --- Widget Building Helper Methods ---
+
+  /// Detaylı önizleme alanını oluşturur (öncekiyle büyük ölçüde aynı).
   Widget _buildDetailPreview(BuildContext context, AppThemeData previewTheme) {
     final String styleName = _getBaseStyleName(previewTheme.type);
     final bool isLocked = !previewTheme.isFree;
-    final bool isApplied = previewTheme.type == _currentAppliedBaseStyle;
+    final bool isApplied = _currentAppliedBaseStyle != null &&
+        ThemeConfig.getBaseStyle(previewTheme.type) == _currentAppliedBaseStyle;
 
-    // Önizleme içeriğini, önizlenen temanın kendi stilleriyle göstermek için Theme widget'ı kullanıyoruz
     return Theme(
-      data: previewTheme.materialTheme, // ÖNİZLENEN TEMAYI UYGULA
-      child: Builder( // Yeni temayı context'e yüklemek için Builder
+      data: previewTheme.materialTheme,
+      child: Builder(
         builder: (themedContext) {
-          final theme = Theme.of(themedContext); // Artık önizlenen tema
+          final theme = Theme.of(themedContext);
           final colorScheme = theme.colorScheme;
           final textTheme = theme.textTheme;
 
           return Container(
-            margin: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 20),
+            margin: const EdgeInsets.symmetric(horizontal: 20.0),
             decoration: BoxDecoration(
-              // Kenarlık veya gölge eklenebilir
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, spreadRadius: 2),
-                ]
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [ BoxShadow( color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 1, offset: const Offset(0, 4) ), ],
             ),
-            clipBehavior: Clip.antiAlias, // İçeriği kırp
-            child: Stack(
+            clipBehavior: Clip.antiAlias,
+            child: Stack( /* ... İçerik öncekiyle aynı ... */
               fit: StackFit.expand,
               children: [
                 // 1. Arka Plan Resmi
                 Image.asset(
                   previewTheme.backgroundAssetPath,
-                  fit: BoxFit.fill,
+                  fit: BoxFit.fill, // Veya BoxFit.cover
                   errorBuilder: (context, error, stackTrace) => Container(
-                      color: colorScheme.surface,
-                      child: Center(child: Icon(Icons.error_outline, color: colorScheme.error))),
+                    color: colorScheme.surfaceContainerLowest, // Hata durumunda düz renk
+                    child: Center(child: Icon(Icons.error_outline, color: colorScheme.error, size: 40)),
+                  ),
                 ),
-                // 2. İçerik Alanı (Hafif opak arka planla okunabilirlik)
+                // 2. İçerik Alanı (Görsel öğelerin üzerine gelecek)
                 Container(
                   decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          colors: [
-                            colorScheme.surface.withOpacity(0.05), // Üstte daha opak
-                            colorScheme.surface.withOpacity(0.05), // Ortada
-                            colorScheme.surface.withOpacity(0.05), // Altta daha opak
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight
-                      )
+                    gradient: LinearGradient( colors: [ Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.15), Colors.black.withOpacity(0.05), ], begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.0, 0.5, 1.0],),
                   ),
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 15), // İç boşluklar
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Tema Adı
-                      Text(
-                        styleName,
-                        style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 10),
-                      // Örnek Metinler (Temanın kendi font ve rengiyle)
-                      Text(
-                        'Örnek Başlık Metni',
-                        style: textTheme.titleLarge,
-                        textAlign: TextAlign.center,
-                      ),
+                      // Tema Stili Adı
+                      Text( styleName, style: textTheme.headlineMedium?.copyWith( fontWeight: FontWeight.w600, color: colorScheme.onSurface, shadows: [ Shadow( blurRadius: 2, color: Colors.black.withOpacity(0.3)) ] ), textAlign: TextAlign.center,),
+                      const SizedBox(height: 12),
+                      // Örnek Metinler
+                      Text( 'Örnek Başlık Metni', style: textTheme.titleMedium, textAlign: TextAlign.center,),
                       const SizedBox(height: 8),
-                      Text(
-                        'Bu tema seçildiğinde gövde metinleri bu şekilde görünecektir. ${textTheme.bodyLarge?.fontFamily} fontu kullanılıyor.',
-                        style: textTheme.bodyLarge?.copyWith(height: 1.5), // Satır aralığı
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text( 'Seçili tema uygulandığında gövde metinleri bu şekilde görünecektir.', style: textTheme.bodyMedium?.copyWith(height: 1.4), textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis,),
                       ),
-                      const Spacer(), // Aradaki boşluğu doldur
-                      // Örnek Buton
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Örnek Buton'),
-                        // Stil otomatik olarak themedContext'ten (önizlenen tema) gelir
-                      ),
-                      const SizedBox(height: 10),
-                      // Uygula / Seçili Butonu
-                      if (!isLocked)
-                        ElevatedButton.icon(
-                          icon: Icon(isApplied ? Icons.check_circle : Icons.check_circle_outline, size: 18),
-                          label: Text(isApplied ? 'Uygulandı' : 'Bu Temayı Uygula'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isApplied ? colorScheme.secondary : colorScheme.primary,
-                            foregroundColor: isApplied ? colorScheme.onSecondary : colorScheme.onPrimary,
-                          ),
-                          onPressed: isApplied ? null : () { // Zaten uygulanmışsa pasif
-                            _applyTheme(context, previewTheme);
-                          },
-                        )
-                      else
-                        const Chip(label: Text('Premium Tema'), avatar: Icon(Icons.lock, size: 16)),
-
+                      const Spacer(), // Butonu alta iter
+                      // Örnek Buton (Sadece görsel amaçlı)
+                      ElevatedButton.icon( icon: const Icon(Icons.star_border_rounded, size: 18), label: const Text('Örnek Buton'), onPressed: () {}, style: ElevatedButton.styleFrom( elevation: 4,),),
+                      const SizedBox(height: 12),
+                      // --- YENİ İŞLEVSELLİK ---
+                      // "Bu Stili Ayarla" Butonu
+                      if (!isLocked && !isApplied)
+                        FilledButton.icon( icon: const Icon(Icons.settings_brightness_rounded, size: 18), label: const Text('Bu Stili Ayarla'),
+                          onPressed: () { _navigateToSettingsWithStyle(ThemeConfig.getBaseStyle(previewTheme.type)); },
+                          style: FilledButton.styleFrom( backgroundColor: colorScheme.primaryContainer, foregroundColor: colorScheme.onPrimaryContainer,),)
+                      // Tema Zaten Uygulanmışsa Bilgi Mesajı
+                      else if (isApplied)
+                        const Chip( avatar: Icon(Icons.check_circle_outline, size: 16), label: Text('Bu Stil Uygulanmış'),)
+                      // Kilitli Tema Mesajı
+                      else // isLocked == true
+                        const Chip( avatar: Icon(Icons.lock_outline_rounded, size: 16), label: Text('Premium Tema'),),
+                      //------------------------
                     ],
                   ),
                 ),
-                // Kilit ikonu (eğer varsa, sağ üstte)
+                // Kilit İkonu (Eğer Kilitliyse Sağ Üstte)
                 if (isLocked)
-                  Positioned( top: 8, right: 8, child: Icon(Icons.lock, color: colorScheme.onSurface.withOpacity(0.5), size: 20)),
-
+                  Positioned( top: 10, right: 10, child: Container( padding: const EdgeInsets.all(5), decoration: BoxDecoration( color: Colors.black.withOpacity(0.5), shape: BoxShape.circle,), child: Icon(Icons.lock, color: Colors.white.withOpacity(0.8), size: 18),)),
               ],
             ),
           );
@@ -248,99 +340,80 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  /// Alttaki kaydırılabilir küçük tema önizleme listesini oluşturur
+  /// Thumbnail listesini oluşturur.
   Widget _buildThumbnailList(BuildContext context) {
-    return Container(
-      height: 110, // Liste yüksekliği
-      margin: const EdgeInsets.only(top: 8, bottom: 8),
-      // Kenarlardan hafif boşluklu başlatmak için padding
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _availableBaseThemes.length,
-        // Listenin sağına ve soluna boşluk ekle
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        itemBuilder: (context, index) {
-          final theme = _availableBaseThemes[index];
-          final bool isSelectedForPreview = index == _selectedPreviewIndex;
-          final bool isApplied = theme.type == _currentAppliedBaseStyle; // Uygulanan tema mı?
-          final bool isLocked = !theme.isFree;
+    // _displayThemes listesi _updateDisplayThemes içinde güncellendi.
+    return ListView.builder(
+      controller: _scrollController, // ScrollController'ı ata
+      scrollDirection: Axis.horizontal,
+      itemCount: _displayThemes.length,
+      padding: const EdgeInsets.symmetric(horizontal: _listHorizontalPadding),
+      itemBuilder: (context, displayIndex) { // Artık bu index, _displayThemes'e göre
+        final themeData = _displayThemes[displayIndex];
+        final originalIndex = _originalBaseThemes.indexWhere((t) => t.type == themeData.type);
 
-          return _buildThumbnailCard(
-            context: context,
-            theme: theme,
-            isSelected: isSelectedForPreview,
-            isApplied: isApplied,
-            isLocked: isLocked,
-            index: index,
-            onTap: (tappedIndex) {
-              // Tıklanan thumbnail'i üstte göstermek için state'i güncelle
-              if (mounted) {
-                setState(() {
-                  _selectedPreviewIndex = tappedIndex;
-                });
-              }
-            },
-          );
-        },
-      ),
+        // Seçili önizleme, _originalBaseThemes listesindeki index'e göre belirlenir.
+        final bool isSelectedForPreview = originalIndex == _selectedPreviewIndex;
+        final bool isApplied = _currentAppliedBaseStyle != null &&
+            ThemeConfig.getBaseStyle(themeData.type) == _currentAppliedBaseStyle;
+        final bool isLocked = !themeData.isFree;
+
+        return _buildThumbnailCard(
+          context: context,
+          theme: themeData,
+          isSelected: isSelectedForPreview,
+          isApplied: isApplied,
+          isLocked: isLocked,
+          onTap: () {
+            // Tıklama işlevini merkezi fonksiyona yönlendir
+            _handleThumbnailTap(themeData, displayIndex);
+          },
+        );
+      },
     );
   }
 
-  /// Alttaki listede gösterilecek tek bir küçük tema kartını oluşturur
+
+  /// Tek bir thumbnail kartını oluşturur (öncekiyle büyük ölçüde aynı, onTap değişikliği).
   Widget _buildThumbnailCard({
     required BuildContext context,
     required AppThemeData theme,
-    required bool isSelected, // Önizleme için seçili mi?
-    required bool isApplied, // Uygulanmış tema mı?
+    required bool isSelected,
+    required bool isApplied,
     required bool isLocked,
-    required int index,
-    required ValueChanged<int> onTap,
+    required VoidCallback onTap, // Basit VoidCallback yeterli
   }) {
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+    final Color outlineColor = Theme.of(context).colorScheme.outline;
+    final Color appliedIndicatorColor = Theme.of(context).colorScheme.secondary;
+
     return Padding(
-      // Kartlar arası boşluk
-      padding: const EdgeInsets.only(right: 12.0),
+      padding: const EdgeInsets.only(right: _thumbnailPaddingRight),
       child: Opacity(
-        opacity: isLocked && !isApplied ? 0.7 : 1.0, // Kilitli ve uygulanmamış olanlar soluk
+        opacity: isLocked && !isApplied ? 0.7 : 1.0,
         child: InkWell(
-          onTap: () => onTap(index), // Tıklanınca index'i bildir
+          onTap: onTap, // Dışarıdan gelen onTap'ı kullan
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            width: 80, // Sabit genişlik
-            decoration: BoxDecoration(
+            width: _thumbnailWidth, // Sabit genişlik kullan
+            decoration: BoxDecoration( /* ... Kenarlık önceki gibi ... */
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                // Önizleme için seçili olanı veya uygulananı vurgula
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : (isApplied ? Theme.of(context).colorScheme.secondary : Colors.grey.withOpacity(0.3)),
-                width: isSelected ? 3 : (isApplied ? 2 : 1),
+                color: isSelected ? primaryColor : (isApplied ? appliedIndicatorColor.withOpacity(0.7) : outlineColor.withOpacity(0.3)),
+                width: isSelected ? 3.0 : (isApplied ? 2.0 : 1.0),
               ),
-              boxShadow: isSelected ? [ BoxShadow(color: Theme.of(context).colorScheme.primary.withOpacity(0.2), blurRadius: 4)] : [],
+              boxShadow: isSelected ? [ BoxShadow( color: primaryColor.withOpacity(0.25), blurRadius: 5, spreadRadius: 0 )] : [],
             ),
-            clipBehavior: Clip.antiAlias, // Resmi kırp
-            child: Stack(
+            clipBehavior: Clip.antiAlias,
+            child: Stack( /* ... İçerik önceki gibi ... */
               fit: StackFit.expand,
               children: [
                 // Küçük resim önizlemesi
-                Image.asset(
-                  theme.backgroundAssetPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(color: theme.materialTheme.colorScheme.onInverseSurface),
-                ),
-                // Kilit ikonu (küçük)
-                if (isLocked)
-                  Positioned(
-                    top: 3,
-                    right: 3,
-                    child: Icon(Icons.lock, size: 14, color: Colors.white.withOpacity(0.8), shadows: [Shadow(blurRadius: 1)]),
-                  ),
-                // Uygulanmışsa işaret
-                if (isApplied && !isSelected) // Sadece uygulanmış ve önizlemede değilse göster
-                  Positioned(
-                    bottom: 3,
-                    right: 3,
-                    child: Icon(Icons.check_circle, size: 14, color: Colors.white.withOpacity(0.9), shadows: [Shadow(blurRadius: 1)]),
-                  )
+                Image.asset( theme.backgroundAssetPath, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container( color: theme.materialTheme.colorScheme.surfaceVariant, child: Icon(Icons.image_not_supported_outlined, size: 20, color: theme.materialTheme.colorScheme.onSurfaceVariant),),),
+                // Kilit ikonu
+                if (isLocked) Positioned( top: 4, right: 4, child: Icon(Icons.lock, size: 14, color: Colors.white.withOpacity(0.85), shadows: const [Shadow(blurRadius: 2, color: Colors.black54)]),),
+                // Uygulandı ikonu
+                if (isApplied && !isSelected && !isLocked) Positioned( bottom: 4, left: 4, child: Icon(Icons.check_circle, size: 15, color: Colors.white.withOpacity(0.9), shadows: const [Shadow(blurRadius: 2, color: Colors.black54)]),)
               ],
             ),
           ),
@@ -348,5 +421,5 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
     );
   }
+} // _ExploreScreenState sınıfının sonu
 
-} // _SettingsThemeScreenState sınıfının sonu

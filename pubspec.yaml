@@ -28,6 +28,7 @@ dependencies:
   stacked_themes: ^0.3.15
   font_awesome_flutter: ^10.8.0
   popover: ^0.3.1
+  local_auth: ^2.2.0
 
   #database
   hive: ^2.2.3
@@ -88,6 +89,7 @@ dependencies:
 
   flutter_local_notifications: ^18.0.1
   flutter_timezone: ^2.1.0
+  pinput: ^5.0.1
 
 dev_dependencies:
 
@@ -114,10 +116,51 @@ flutter:
     - assets/pages/japanase_minimalist/
     - assets/pages/digital_scrapbooking/
     - assets/pages/architectural_blueprint_style/
+    - assets/logo1.png
 
 
   # Jenerik L10n
   generate: true
 flutter_intl:
   enabled: true
+
+flutter_launcher_icons:
+  android: true # Android için ikon oluşturulsun mu? Veya "launcher_icon" gibi özel isim
+  ios: true     # iOS için ikon oluşturulsun mu?
+  remove_alpha_ios: true # iOS ikonundan alfa kanalını (şeffaflık) kaldırmak genellikle önerilir
+  image_path: "assets/logo1.png" # Kullanılacak ana ikon dosyası
+
+  # Android Adaptive Icon Ayarları (Android 8.0 Oreo ve sonrası için)
+  # logo1.png dosyanız sadece ön plan öğesiyse (örn. şeffaf arka planlı kitap)
+  # adaptive_icon_background zorunludur.
+  # Eğer logo1.png zaten kare bir arka plana sahipse, bu ayarlar farklılık gösterebilir.
+  adaptive_icon_background: "#FFFFFF" # Arka plan rengi (örn: Açık tema için Beyaz, Koyu tema için #3E2723)
+  adaptive_icon_foreground: "assets/logo1.png" # Ön plan ikonu (genellikle image_path ile aynı)
+
+
+# Flutter Native Splash Yapılandırması
+flutter_native_splash:
+  # Açılış ekranının arka plan rengi
+  # Uygulama temanızla uyumlu bir renk seçin (örn: Açık tema için Krem, Koyu tema için Koyu Kahve)
+  color: "#F8F4E3" # Açık tema Krem/Bej rengi (örnek)
+  # color_dark: "#3E2723" # İsteğe bağlı: Koyu tema için farklı renk
+
+  # Açılış ekranında gösterilecek logo
+  image: assets/logo1.png
+  # image_dark: assets/images/logo1_dark.png # İsteğe bağlı: Koyu tema için farklı logo
+
+  # Hangi platformlar için oluşturulacağı
+  android: true
+  ios: true
+  web: false # Web için isterseniz true yapabilirsiniz
+
+  # Android 12 ve sonrası için özel ayarlar (isteğe bağlı)
+  # Android 12'de ikon genellikle ortada daha küçük görünür.
+  # android_12:
+  #   image: assets/images/logo1_android12.png # Android 12 için özel ikon (genellikle ana ikondan daha fazla boşluk içerir)
+  #   icon_background_color: "#F8F4E3" # İkonun arkasındaki dairenin rengi
+  #   image_dark: assets/images/logo1_android12_dark.png
+  #   icon_background_color_dark: "#3E2723"
+
+  # fullscreen: true # Tam ekran splash isterseniz
 

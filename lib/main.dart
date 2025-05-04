@@ -4,61 +4,92 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
-import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
-import 'package:mindvault/features/journal/screens/home/main_screen.dart';
-import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
-import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
+import 'package:mindvault/features/journal/bloc_auth/auth_service.dart';
 import 'package:mindvault/firebase_options.dart';
-import 'package:provider/provider.dart'; // MultiProvider için gerekli
+// Provider paketi kullanılacaksa
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:stacked_themes/stacked_themes.dart'; // <-- stacked_themes import edildi
+import 'package:stacked_themes/stacked_themes.dart';
+
+// Tema ve Repository importları
+import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
+import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
+
+// Journal Bloc importları
+import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
+
+// Auth Bloc importları (Kendi dosya yolunuza göre güncelleyin)
+import 'package:mindvault/features/journal/bloc_auth/auth_bloc.dart';
+
+// Ekran importları
+import 'package:mindvault/features/journal/screens/home/main_screen.dart';
+import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
+import 'package:mindvault/features/journal/screens/settings/lock/lock_screen.dart'; // LockScreen import
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ThemeManager.initialise();
 
-  // stacked_themes'i başlat
-  await ThemeManager.initialise(); // Bu doğru
-
-  // Onboarding durumunu kontrol et
+  // Onboarding Durumu
   final prefs = await SharedPreferences.getInstance();
   final bool onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
-  // Tema index'ini SharedPreferences'dan okumaya GEREK YOK
 
-  // Diğer başlatmaları yap (Firebase, Intl, Repository)
+  // Servisleri başlatma
   MindVaultRepository? mindVaultRepository;
+  AuthService? authService; // AuthService nesnesi
+
   try {
+    // Firebase başlatma
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Intl başlatma
     await initializeDateFormatting('tr_TR', null);
 
+    // Repository ve Servisleri oluştur
     mindVaultRepository = MindVaultRepository();
-    await mindVaultRepository.init();
+    await mindVaultRepository.init(); // Repository'yi başlat
+    authService = AuthService(); // AuthService'i oluştur
 
     if (kDebugMode) {
-      print("Firebase, Intl, Repository Initialized Successfully.");
+      print("Firebase, Intl, Repository, AuthService Initialized Successfully.");
     }
 
     // Uygulamayı Provider'lar ile çalıştır
     runApp(
-      MultiProvider(
+      // Önce Repository/Service'leri sağla
+      MultiRepositoryProvider(
         providers: [
-          // Repository'yi sağla
-          Provider<MindVaultRepository>(
+          RepositoryProvider<MindVaultRepository>(
             create: (_) => mindVaultRepository!,
-            dispose: (_, repo) => repo.close(),
+            // Uygulama kapanırken repository'yi kapatmak için dispose gerekli olabilir,
+            // ancak MultiProvider'da dispose yok. Uygulama kapanırken manuel çağrılabilir
+            // veya farklı bir state management (riverpod gibi) düşünülebilir.
+            // Şimdilik Bloc içinde dispose yönetimi daha yaygın.
           ),
-          // JournalBloc'u sağla
-          BlocProvider<JournalBloc>(
-            create: (context) => JournalBloc(
-              repository: context.read<MindVaultRepository>(),
-            )..add(const LoadJournalEntries()),
+          RepositoryProvider<AuthService>(
+            create: (_) => authService!,
           ),
-          // Provider<ThemeService> veya Provider<int> BURADA GEREKLİ DEĞİL
         ],
-        child: MyApp(showOnboarding: !onboardingComplete),
+        // Sonra Bloc'ları sağla
+        child: MultiBlocProvider(
+          providers: [
+            // JournalBloc
+            BlocProvider<JournalBloc>(
+              create: (context) => JournalBloc(
+                repository: context.read<MindVaultRepository>(),
+              )..add(const LoadJournalEntries()), // Başlangıçta günlükleri yükle
+            ),
+            // AuthBloc
+            BlocProvider<AuthBloc>(
+              create: (context) => AuthBloc(
+                authService: context.read<AuthService>(),
+              ), // AuthBloc constructor'ı içinde CheckAuthStatus eklenmişti
+              lazy: false, // AuthBloc'un hemen başlaması ve durumu kontrol etmesi için
+            ),
+          ],
+          child: MyApp(showOnboarding: !onboardingComplete), // Onboarding durumunu ilet
+        ),
       ),
     );
   } catch (error, stackTrace) {
@@ -66,7 +97,8 @@ Future<void> main() async {
       print("FATAL ERROR during App Initialization: $error");
       print(stackTrace);
     }
-    // Hata ekranını göster
+    // Repository başlatıldıysa kapatmayı dene
+    await mindVaultRepository?.close();
     runApp(InitializationErrorScreen(error: error));
   }
 }
@@ -76,44 +108,71 @@ class MyApp extends StatelessWidget {
   final bool showOnboarding;
   const MyApp({super.key, required this.showOnboarding});
 
-  // _convertThemeManagerMode fonksiyonuna artık gerek yok
-
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
-      print("MyApp build method called. Show Onboarding: $showOnboarding");
-    }
-
-    // ThemeBuilder widget'ını MaterialApp'ı saracak şekilde kullanıyoruz
+    // stacked_themes için ThemeBuilder
     return ThemeBuilder(
-      // Bizim tanımladığımız ThemeData listesini veriyoruz
       themes: ThemeConfig.materialThemes,
-      // İsteğe bağlı: Durum çubuğu rengini tema ile değiştirmek için
-      // statusBarColorBuilder: (theme) => theme?.primaryColor,
-      // İsteğe bağlı: Sadece Açık/Koyu mod kullanılacaksa
-      // lightTheme: ...,
-      // darkTheme: ...,
-      // defaultThemeMode: ThemeMode.system,
-
-      // builder fonksiyonu context, regularTheme, darkTheme, themeMode sağlar
       builder: (context, regularTheme, darkTheme, themeMode) {
-        // Bu parametreleri doğrudan MaterialApp'a veriyoruz
         return MaterialApp(
           title: 'Mind Vault',
           debugShowCheckedModeBanner: false,
-
-          // Temaları ThemeBuilder'dan al
           theme: regularTheme,
-          darkTheme: darkTheme, // Birden çok tema olsa bile darkTheme sağlanabilir
-          themeMode: themeMode, // ThemeBuilder bunu yönetir
+          darkTheme: darkTheme,
+          themeMode: themeMode,
 
-          // Başlangıç Ekranı (Dinamik)
-          home: showOnboarding ? const OnboardingScreen() : const MainScreen(),
+          // Başlangıç ekranını belirleyen yeni bir widget kullanalım
+          home: HomeGate(showOnboarding: showOnboarding),
         );
       },
     );
   }
 }
+
+/// Onboarding ve Auth durumuna göre ilk ekranı yönlendiren Widget
+class HomeGate extends StatelessWidget {
+  final bool showOnboarding;
+  const HomeGate({super.key, required this.showOnboarding});
+
+  @override
+  Widget build(BuildContext context) {
+    // Eğer onboarding gösterilmesi gerekiyorsa, kimlik durumuna bakmadan onu göster
+    if (showOnboarding) {
+      // print("HomeGate: Showing OnboardingScreen."); // Debug
+      return const OnboardingScreen();
+    } else {
+      // Onboarding tamamlanmışsa, AuthBloc durumuna bak
+      return BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          // print("HomeGate: Auth State Received: $state"); // Debug
+          if (state is AuthInitial || state is AuthInProgress) {
+            // Kimlik durumu kontrol edilirken veya işlem yapılırken bekleme ekranı
+            // print("HomeGate: Showing Loading Screen."); // Debug
+            return const Scaffold(
+              // Temalı bir bekleme ekranı daha iyi olabilir
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (state is AuthLocked || state is AuthFailure) {
+            // Uygulama kilitliyse veya önceki deneme başarısızsa LockScreen'i göster
+            // print("HomeGate: Showing LockScreen."); // Debug
+            return const LockScreen();
+          } else if (state is AuthUnlocked || state is AuthSetupRequired) {
+            // Kilit açılmışsa veya PIN kurulumu gerekliyse (ayarlardan yapılır) MainScreen'i göster
+            // print("HomeGate: Showing MainScreen."); // Debug
+            return const MainScreen();
+          } else {
+            // Beklenmedik bir durum için fallback
+            // print("HomeGate: Showing Fallback Error Screen."); // Debug
+            return const Scaffold(
+              body: Center(child: Text("Beklenmedik bir kimlik doğrulama durumu!")),
+            );
+          }
+        },
+      );
+    }
+  }
+}
+
 
 /// Başlatma sırasında hata oluşursa gösterilecek basit bir ekran.
 class InitializationErrorScreen extends StatelessWidget {
@@ -122,7 +181,7 @@ class InitializationErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Bu kısım aynı kalabilir
+    // Bu widget aynı kalabilir
     return MaterialApp(
       home: Scaffold(
         body: Center(
