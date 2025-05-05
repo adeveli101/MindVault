@@ -448,9 +448,9 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                                   onPressed: _addNewPage,
                                   icon: const
                                   Icon(
-                                      Icons.post_add_rounded ), iconSize: 26,
+                                      Icons.post_add_rounded ), iconSize: 28,
                                   tooltip: 'Yeni Sayfa Ekle',
-                                  color: colorScheme.onPrimary,
+                                  color: colorScheme.onPrimaryFixed,
                                   padding: const EdgeInsets.all(10.0), constraints: const BoxConstraints())),
                           const Spacer(),
                           // Orta: Kaydet Butonu
