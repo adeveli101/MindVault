@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mindvault/features/journal/screens/settings/lock/security_settings_screen.dart';
+import 'package:mindvault/features/journal/screens/settings/notification/settings_notification_screen.dart';
 import 'package:mindvault/features/journal/screens/settings/settings_theme_screen.dart';
 // ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
 
@@ -52,14 +53,9 @@ class SettingsHostScreen extends StatelessWidget {
             title: const Text('Bildirimler'),
             subtitle: const Text('Yazma hatırlatıcıları'),
             trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            onTap: () { /* TODO */ },
+            onTap: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsNotificationScreen())); },
           ),
-          ListTile(
-            leading: Icon(Icons.cloud_outlined, color: Theme.of(context).colorScheme.secondary),
-            title: const Text('Yedekleme & Geri Yükleme'),
-            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            onTap: () { /* TODO */ },
-          ),
+
         ],
       ),
     );

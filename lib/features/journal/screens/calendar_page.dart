@@ -42,6 +42,9 @@ class _CalendarPageState extends State<CalendarPage> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   List<JournalEntry> _lastLoadedEntriesForFallback = [];
 
+  late ScrollController _listScrollController; // Liste için
+  late ScrollController _calendarScrollController;
+
   // Arama & Filtre State'leri
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -56,6 +59,9 @@ class _CalendarPageState extends State<CalendarPage> {
     _selectedDay = _focusedDay;
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
+
+    _listScrollController = ScrollController(); // Başlat
+    _calendarScrollController = ScrollController();
 
     // İlk yükleme ve state senkronizasyonu
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,6 +84,11 @@ class _CalendarPageState extends State<CalendarPage> {
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
     _debounce?.cancel();
+
+
+    _listScrollController.dispose(); // Dispose et
+    _calendarScrollController.dispose();
+
     super.dispose();
   }
 
@@ -485,6 +496,34 @@ class _CalendarPageState extends State<CalendarPage> {
             tooltip: 'Filtrele (Ruh Hali)',
             onPressed: _openFilterSheet,
           ),
+          // Filtre Butonu (TextButton olarak GÜNCELLENDİ)
+          TextButton(
+            onPressed: _openFilterSheet, // Filtre sayfasını açma fonksiyonu aynı kalıyor
+            style: TextButton.styleFrom(
+              // Filtre aktifse birincil tema rengini, değilse daha soluk bir renk kullan
+              foregroundColor: state.isMoodFiltered
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+              // Butonun iç boşluğunu ayarlayarak hizalamayı iyileştirebilirsiniz
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              // Metin stilini biraz daha belirgin yapabilirsiniz
+              textStyle: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600, // Kalınlık ayarı
+                letterSpacing: 0.5, // Harf aralığı (isteğe bağlı)
+              ),
+              // İsteğe bağlı: Tıklama efektinin şekli
+              // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            ).copyWith(
+              // Tıklama efektinin rengini de ayarlayabilirsiniz
+              overlayColor: WidgetStateProperty.all(
+                  (state.isMoodFiltered
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant
+                  ).withOpacity(0.1) // Hafif bir tıklama efekti
+              ),
+            ),
+            child: const Text('Filtrele'), // Butonun üzerindeki yazı
+          ),
         ],
       ),
     );
@@ -544,22 +583,42 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget _buildEntryListContent(BuildContext context, List<JournalEntry> entries, bool isFiltered, ThemeData theme, double bottomPadding) {
     if (entries.isEmpty) {
       // Boş Durum Mesajı
-      return Center( child: Padding( padding: const EdgeInsets.all(20.0), child: Column( mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(isFiltered ? Icons.filter_alt_off_outlined : Icons.menu_book_outlined, size: 55, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)),
+      return Center( child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column( mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+        Icon(isFiltered ? Icons.filter_alt_off_outlined :
+        Icons.menu_book_outlined, size: 55,
+            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)),
         const SizedBox(height: 16),
         Text(isFiltered ? 'Filtreyle eşleşen kayıt bulunamadı.' : 'Henüz günlük kaydınız bulunmuyor.', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         // Genel temizle butonu kaldırıldı, çünkü tek tek temizleme var
       ])));
     }
-    // Dolu Liste
-    return Scrollbar(thumbVisibility: true, child: ListView.builder(
-        padding: EdgeInsets.only(left: 16.0, right: 16.0, top: 4.0, bottom: bottomPadding), // Üst padding azaltıldı
-        itemCount: entries.length,
-        itemBuilder: (context, index) => Padding(padding: const EdgeInsets.symmetric(vertical: 3.0), child: _buildJournalEntryCard(context, entries[index], theme))
-    ));
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalListPadding = screenWidth * 0.10;    return Scrollbar(
+        controller: _listScrollController,
+        thumbVisibility: true,
+        child: ListView.builder(
+            controller: _listScrollController,
+            // YATAY PADDING GÜNCELLENDİ
+            padding: EdgeInsets.only(
+                left: horizontalListPadding, // Sol boşluk
+                right: horizontalListPadding, // Sağ boşluk
+                top: 4.0,
+                bottom: bottomPadding
+            ),
+            itemCount: entries.length,
+            itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3.0),
+                // _buildJournalEntryCard çağrısı aynı kalır
+                child: _buildJournalEntryCard(context, entries[index], theme)
+            )
+        )
+    );
   }
 
-  /// Tek bir günlük kartı widget'ını oluşturur.
+  /// Tek bir günlük kartı widget'ını oluşturur. (GÜNCELLENDİ)
   Widget _buildJournalEntryCard(BuildContext context, JournalEntry entry, ThemeData theme) {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -568,14 +627,15 @@ class _CalendarPageState extends State<CalendarPage> {
     final cardBackgroundColor = entry.isFavorite ? moodColor.withOpacity(0.08) : colorScheme.surfaceContainerHigh;
     final favoriteColor = Colors.red.shade400;
     final iconColor = colorScheme.onSurfaceVariant.withOpacity(0.7);
-    final DateFormat dateFormat = DateFormat('d MMMM EEEE', 'tr_TR');
-    final DateFormat timeFormat = DateFormat('HH:mm', 'tr_TR');
+
+    // Tarih Formatları
+    final DateFormat mainDateFormat = DateFormat('d MMMM yyyy, EEEE', 'tr_TR'); // Ana tarih (Başlık yerine)
+    final DateFormat updateDateFormat = DateFormat("'Güncellendi:' d MMM yyyy, HH:mm", 'tr_TR'); // Güncelleme tarihi
     final bool isUpdated = entry.updatedAt.millisecondsSinceEpoch != entry.createdAt.millisecondsSinceEpoch;
-    final String displayTitle = entry.title?.isNotEmpty ?? false ? entry.title! : 'Başlıksız';
     final String contentPreview = entry.content.split('\n').first;
 
     return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
+        margin: const EdgeInsets.symmetric(vertical: 4.0), // Dikey boşluk aynı kalabilir
         decoration: BoxDecoration(
             color: cardBackgroundColor.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12.0),
@@ -588,7 +648,7 @@ class _CalendarPageState extends State<CalendarPage> {
             child: InkWell(
                 onTap: () async {
                   if (!mounted) return;
-                  _dismissSearchIfApplicable(); // Detaya gitmeden önce aramayı kapat
+                  _dismissSearchIfApplicable();
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => AddEditJournalScreen(existingEntry: entry)));
                   if (mounted) { context.read<JournalBloc>().add(const LoadJournalEntries()); }
                 },
@@ -599,31 +659,51 @@ class _CalendarPageState extends State<CalendarPage> {
                     child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Sol taraf: Mood ikonu (varsa)
                           if (moodIcon != null) Padding(padding: const EdgeInsets.only(right: 12.0, top: 3), child: FaIcon(moodIcon, color: moodColor, size: 20)),
+
+                          // Orta bölüm: Tarihler ve İçerik Önizlemesi
                           Expanded(
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(displayTitle, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.25), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    // Başlık yerine Ana Tarih
+                                    Text(
+                                        mainDateFormat.format(entry.createdAt),
+                                        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.25),
+                                        maxLines: 1, // Tek satır yeterli olacaktır
+                                        overflow: TextOverflow.ellipsis
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(contentPreview, style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant.withOpacity(0.9), height: 1.35), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 6),
-                                    Row( children: [
-                                      Icon(Icons.access_time_rounded, size: 12, color: iconColor), const SizedBox(width: 4),
-                                      Text('${timeFormat.format(entry.createdAt)} - ${dateFormat.format(entry.createdAt)}', style: textTheme.bodySmall?.copyWith(color: iconColor)),
-                                      if (isUpdated) ...[const SizedBox(width: 6), Icon(Icons.edit_note_rounded, size: 13, color: iconColor.withOpacity(0.7))]
-                                    ])
+                                    // İçerik Önizlemesi
+                                    Text(
+                                        contentPreview,
+                                        style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant.withOpacity(0.9), height: 1.35),
+                                        maxLines: 2, // İçerik önizlemesi için 2 satır
+                                        overflow: TextOverflow.ellipsis
+                                    ),
+                                    // Güncellenme Tarihi (eğer farklıysa)
+                                    if (isUpdated) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        updateDateFormat.format(entry.updatedAt),
+                                        style: textTheme.bodySmall?.copyWith(color: iconColor.withOpacity(0.8)),
+                                      ),
+                                    ],
+                                    // Alttaki zaman/tarih satırı kaldırıldı
+                                    // const SizedBox(height: 6),
+                                    // Row(...) // Bu Row kaldırıldı
                                   ]
                               )
                           ),
-                          // YENİ: Tooltip widget'ı ile sarılmış IconButton
+
+                          // Sağ taraf: Sabitleme Butonu
                           Padding(
                               padding: const EdgeInsets.only(left: 8.0),
-                              child: Tooltip( // Tooltip widget'ı eklendi
+                              child: Tooltip(
                                 message: entry.isFavorite ? 'Sabitlemeyi kaldır' : 'Sabitle',
                                 child: IconButton(
                                     iconSize: 20, padding: const EdgeInsets.all(4), visualDensity: VisualDensity.compact, constraints: const BoxConstraints(maxWidth: 28, maxHeight: 28),
-                                    // tooltip parametresi kaldırıldı
                                     icon: Icon(entry.isFavorite ? Icons.push_pin_rounded : Icons.push_pin_outlined, color: entry.isFavorite ? favoriteColor : iconColor.withOpacity(0.8)),
                                     onPressed: () { context.read<JournalBloc>().add(ToggleFavoriteStatus(entryId: entry.id, currentStatus: entry.isFavorite)); }
                                 ),
@@ -637,7 +717,6 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-
   /// Sekme 2: Takvim görünümünü oluşturur.
   Widget _buildCalendarView(BuildContext context, List<JournalEntry> allEntries, ThemeData theme, double bottomPadding) {
     final colorScheme = theme.colorScheme;
@@ -647,8 +726,10 @@ class _CalendarPageState extends State<CalendarPage> {
     final calendarStyle = CalendarStyle(todayDecoration: BoxDecoration(border: Border.all(color: colorScheme.primary, width: 1.5), shape: BoxShape.circle), todayTextStyle: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold), selectedDecoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle), selectedTextStyle: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold), weekendTextStyle: TextStyle(color: colorScheme.tertiary.withOpacity(0.8)), markersAlignment: Alignment.bottomCenter, markersOffset: const PositionedOffset(bottom: 5), markerDecoration: BoxDecoration(color: colorScheme.secondary, shape: BoxShape.circle), markersMaxCount: 1, outsideDaysVisible: false);
 
     return Scrollbar(
+      controller: _calendarScrollController,
       thumbVisibility: true,
       child: SingleChildScrollView(
+        controller: _calendarScrollController,
         padding: EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0, bottom: bottomPadding),
         // Takvime dokunulduğunda da aramayı daralt
         child: GestureDetector(

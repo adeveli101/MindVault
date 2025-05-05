@@ -7,65 +7,43 @@ abstract class JournalState extends Equatable {
   @override List<Object?> get props => [];
 }
 
+// --- Temel Durumlar ---
 class JournalInitial extends JournalState { const JournalInitial(); }
+class JournalLoading extends JournalState { final String? message; const JournalLoading({this.message}); @override List<Object?> get props => [message]; }
+class JournalFailure extends JournalState { final String errorMessage; final Exception? error; const JournalFailure(this.errorMessage, {this.error}); @override List<Object?> get props => [errorMessage, error]; }
 
-class JournalLoading extends JournalState {
-  final String? message;
-  const JournalLoading({this.message});
-  @override List<Object?> get props => [message];
-}
-
+// --- Başarılı Yükleme (Ana Liste ve Filtreleme) ---
 class JournalLoadSuccess extends JournalState {
-  /// Tüm günlük girdilerinin tam listesi.
   final List<JournalEntry> entries;
-
-  // --- Filtreleme Alanları ---
-  /// Filtrelenmiş sonuçlar (filtre aktifse).
   final List<JournalEntry>? filteredEntries;
-  /// Aktif metin sorgusu (varsa).
   final String? currentFilterQuery;
-  /// YENİ: Aktif ruh hali filtreleri listesi (varsa).
-  final List<Mood>? currentMoodFilters; // Çoğul yapıldı
-  // --- Filtreleme Alanları Sonu ---
+  final List<Mood>? currentMoodFilters;
 
-  // Constructor güncellendi
-  const JournalLoadSuccess(
-      this.entries, {
-        this.filteredEntries,
-        this.currentFilterQuery,
-        this.currentMoodFilters, // Çoğul parametre
-      });
+  const JournalLoadSuccess(this.entries, { this.filteredEntries, this.currentFilterQuery, this.currentMoodFilters });
 
-  // props güncellendi
-  @override
-  List<Object?> get props => [
-    entries,
-    filteredEntries,
-    currentFilterQuery,
-    currentMoodFilters, // Çoğul prop
-  ];
-
-  // Kolaylık metodu: Belirli bir ID'ye sahip girdiyi bulma
-  JournalEntry? entryById(String id) {
-    try { return entries.firstWhere((entry) => entry.id == id); }
-    catch (e) { return null; }
-  }
-
-  // Kolaylık özelliği: Şu anda herhangi bir filtre aktif mi?
-  bool get isFiltered =>
-      (currentFilterQuery != null && currentFilterQuery!.isNotEmpty) ||
-          (currentMoodFilters != null && currentMoodFilters!.isNotEmpty); // Liste kontrolü
-
-  // Kolaylık özelliği: Sadece metin filtresi mi aktif?
+  @override List<Object?> get props => [ entries, filteredEntries, currentFilterQuery, currentMoodFilters ];
+  bool get isFiltered => (currentFilterQuery != null && currentFilterQuery!.isNotEmpty) || (currentMoodFilters != null && currentMoodFilters!.isNotEmpty);
   bool get isTextFiltered => currentFilterQuery != null && currentFilterQuery!.isNotEmpty;
-
-  // Kolaylık özelliği: Sadece mood filtresi mi aktif?
-  bool get isMoodFiltered => currentMoodFilters != null && currentMoodFilters!.isNotEmpty; // Liste kontrolü
+  bool get isMoodFiltered => currentMoodFilters != null && currentMoodFilters!.isNotEmpty;
+  JournalEntry? entryById(String id) { try { return entries.firstWhere((e) => e.id == id); } catch (_) { return null; } }
 }
 
-class JournalFailure extends JournalState {
-  final String errorMessage;
-  final Exception? error;
-  const JournalFailure(this.errorMessage, {this.error});
-  @override List<Object?> get props => [errorMessage, error];
+// --- YENİ ETİKET STATE'LERİ ---
+
+/// Tüm benzersiz etiketlerin başarıyla yüklendiği durum.
+class JournalTagsLoadSuccess extends JournalState {
+  final List<String> tags;
+  const JournalTagsLoadSuccess(this.tags);
+  @override List<Object?> get props => [tags];
 }
+
+/// Belirli bir etikete göre girdilerin başarıyla yüklendiği durum.
+/// Bu state, `JournalLoadSuccess`'a benzer ancak özel bir durumu temsil eder.
+/// Alternatif olarak `JournalLoadSuccess`'a bir `activeTagFilter` alanı eklenebilir.
+class JournalEntriesByTagLoadSuccess extends JournalState {
+  final String tag; // Hangi etiket için yüklendiği bilgisi
+  final List<JournalEntry> entries; // O etikete ait girdiler
+  const JournalEntriesByTagLoadSuccess(this.tag, this.entries);
+  @override List<Object?> get props => [tag, entries];
+}
+// --- ETİKET STATE'LERİ SONU ---

@@ -1,77 +1,137 @@
 // lib/main.dart
 
+// Temel Flutter ve Paket Importları
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_core/firebase_core.dart'; // Firebase için
+import 'package:flutter_bloc/flutter_bloc.dart'; // Bloc için
+import 'package:flutter_timezone/flutter_timezone.dart';
+// flutter_native_timezone yerine güncel paketi kullanın (eğer import hatası alıyorsanız)
+// import 'package:flutter_native_timezone_updated_gradle/flutter_native_timezone.dart';
+// Eski paketle devam ediyorsanız:
+import 'package:intl/date_symbol_data_local.dart'; // Tarih formatlama için
+import 'package:mindvault/features/journal/notifications/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Kayıtlı tercihler için
+import 'package:stacked_themes/stacked_themes.dart'; // Tema yönetimi için
+
+// ***** YEREL BİLDİRİM İÇİN YENİ IMPORTLAR *****
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+// **********************************************
+
+// Proje İçi Importlar (Kendi dosya yollarınıza göre kontrol edin)
 import 'package:mindvault/features/journal/bloc_auth/auth_service.dart';
 import 'package:mindvault/firebase_options.dart';
-// Provider paketi kullanılacaksa
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:stacked_themes/stacked_themes.dart';
-
-// Tema ve Repository importları
 import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
 import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
-
-// Journal Bloc importları
 import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
-
-// Auth Bloc importları (Kendi dosya yolunuza göre güncelleyin)
 import 'package:mindvault/features/journal/bloc_auth/auth_bloc.dart';
-
-// Ekran importları
 import 'package:mindvault/features/journal/screens/home/main_screen.dart';
 import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
-import 'package:mindvault/features/journal/screens/settings/lock/lock_screen.dart'; // LockScreen import
+import 'package:mindvault/features/journal/screens/settings/lock/lock_screen.dart';
+// ***** NotificationService İÇİN YENİ IMPORT *****
+// **********************************************
+
+// ***** YEREL BİLDİRİM PLUGIN NESNESİ *****
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
+// *****************************************
+
+// ***** ARKA PLAN BİLDİRİM TIKLAMA İŞLEYİCİSİ *****
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  if (kDebugMode) {
+    print('Arka Plan Bildirim Tıklaması: Payload: ${notificationResponse.payload}');
+  }
+  // TODO: Uygulama açılışında bu payload'ı işleyecek bir mekanizma kurun.
+}
+// **********************************************
 
 Future<void> main() async {
+  // Flutter binding'lerinin hazır olduğundan emin olun
   WidgetsFlutterBinding.ensureInitialized();
+  // Tema yöneticisini başlat
   await ThemeManager.initialise();
 
-  // Onboarding Durumu
-  final prefs = await SharedPreferences.getInstance();
-  final bool onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
-
-  // Servisleri başlatma
+  // Gerekli servisleri ve ayarları başlatma (try-catch bloğu içinde)
   MindVaultRepository? mindVaultRepository;
-  AuthService? authService; // AuthService nesnesi
+  AuthService? authService;
+  bool onboardingComplete = false;
 
   try {
-    // Firebase başlatma
+    // 1. Firebase Başlatma
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // Intl başlatma
+    if (kDebugMode) print("Firebase Initialized.");
+
+    // 2. Intl (Tarih/Zaman Formatlama) Başlatma
     await initializeDateFormatting('tr_TR', null);
+    if (kDebugMode) print("Intl Initialized for tr_TR.");
 
-    // Repository ve Servisleri oluştur
-    mindVaultRepository = MindVaultRepository();
-    await mindVaultRepository.init(); // Repository'yi başlat
-    authService = AuthService(); // AuthService'i oluştur
+    // ***** 3. YEREL BİLDİRİM SERVİSİNİ BAŞLATMA *****
+    try {
+      tz.initializeTimeZones();
+      final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(currentTimeZone));
+      if (kDebugMode) print("Timezone Initialized: $currentTimeZone");
 
-    if (kDebugMode) {
-      print("Firebase, Intl, Repository, AuthService Initialized Successfully.");
+      const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: null,
+      );
+
+      await flutterLocalNotificationsPlugin.initialize(
+          initializationSettings,
+          onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+          onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) async {
+            final String? payload = notificationResponse.payload;
+            if (payload != null && kDebugMode) {
+              if (kDebugMode) {
+                print('Ön Plan Bildirim Tıklaması: Payload: $payload');
+              }
+            }
+            // TODO: Payload'a göre uygulama içi yönlendirme veya işlem yapın.
+          }
+      );
+      if (kDebugMode) { print("FlutterLocalNotificationsPlugin initialized for Android."); }
+    } catch(e, s) {
+      if (kDebugMode) {
+        print("Yerel Bildirimler başlatılırken HATA oluştu: $e");
+        print(s);
+      }
     }
+    // ***** BİLDİRİM BAŞLATMA SONU *****
 
-    // Uygulamayı Provider'lar ile çalıştır
+    // 4. Onboarding Durumunu Kontrol Et
+    final prefs = await SharedPreferences.getInstance();
+    onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+    if (kDebugMode) print("Onboarding Complete: $onboardingComplete");
+
+    // 5. Repository ve Servisleri Oluştur/Başlat
+    mindVaultRepository = MindVaultRepository();
+    await mindVaultRepository.init(); // Hive vb. başlatılır
+    authService = AuthService();
+    if (kDebugMode) { print("Repository and AuthService Initialized."); }
+
+    // 6. Uygulamayı Çalıştır (Provider'lar ile)
     runApp(
-      // Önce Repository/Service'leri sağla
       MultiRepositoryProvider(
         providers: [
-          RepositoryProvider<MindVaultRepository>(
-            create: (_) => mindVaultRepository!,
-            // Uygulama kapanırken repository'yi kapatmak için dispose gerekli olabilir,
-            // ancak MultiProvider'da dispose yok. Uygulama kapanırken manuel çağrılabilir
-            // veya farklı bir state management (riverpod gibi) düşünülebilir.
-            // Şimdilik Bloc içinde dispose yönetimi daha yaygın.
+          // Mevcut Repository ve Servisler
+          RepositoryProvider<MindVaultRepository>.value(value: mindVaultRepository),
+          RepositoryProvider<AuthService>.value(value: authService),
+
+          // ***** NotificationService SAĞLAYICISI EKLENDİ *****
+          RepositoryProvider<NotificationService>(
+            create: (_) => NotificationService(), // NotificationService nesnesi oluşturulup sağlanıyor
           ),
-          RepositoryProvider<AuthService>(
-            create: (_) => authService!,
-          ),
+          // ***************************************************
         ],
-        // Sonra Bloc'ları sağla
         child: MultiBlocProvider(
           providers: [
             // JournalBloc
@@ -84,20 +144,20 @@ Future<void> main() async {
             BlocProvider<AuthBloc>(
               create: (context) => AuthBloc(
                 authService: context.read<AuthService>(),
-              ), // AuthBloc constructor'ı içinde CheckAuthStatus eklenmişti
-              lazy: false, // AuthBloc'un hemen başlaması ve durumu kontrol etmesi için
+              ),
+              lazy: false, // AuthBloc hemen başlasın
             ),
           ],
-          child: MyApp(showOnboarding: !onboardingComplete), // Onboarding durumunu ilet
+          child: MyApp(showOnboarding: !onboardingComplete),
         ),
       ),
     );
   } catch (error, stackTrace) {
+    // Genel Başlatma Hatası
     if (kDebugMode) {
-      print("FATAL ERROR during App Initialization: $error");
+      print("Uygulama Başlatılırken KRİTİK HATA: $error");
       print(stackTrace);
     }
-    // Repository başlatıldıysa kapatmayı dene
     await mindVaultRepository?.close();
     runApp(InitializationErrorScreen(error: error));
   }
@@ -110,7 +170,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // stacked_themes için ThemeBuilder
     return ThemeBuilder(
       themes: ThemeConfig.materialThemes,
       builder: (context, regularTheme, darkTheme, themeMode) {
@@ -120,8 +179,6 @@ class MyApp extends StatelessWidget {
           theme: regularTheme,
           darkTheme: darkTheme,
           themeMode: themeMode,
-
-          // Başlangıç ekranını belirleyen yeni bir widget kullanalım
           home: HomeGate(showOnboarding: showOnboarding),
         );
       },
@@ -129,43 +186,26 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Onboarding ve Auth durumuna göre ilk ekranı yönlendiren Widget
+/// Yönlendirme Widget'ı
 class HomeGate extends StatelessWidget {
   final bool showOnboarding;
   const HomeGate({super.key, required this.showOnboarding});
 
   @override
   Widget build(BuildContext context) {
-    // Eğer onboarding gösterilmesi gerekiyorsa, kimlik durumuna bakmadan onu göster
     if (showOnboarding) {
-      // print("HomeGate: Showing OnboardingScreen."); // Debug
       return const OnboardingScreen();
     } else {
-      // Onboarding tamamlanmışsa, AuthBloc durumuna bak
       return BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
-          // print("HomeGate: Auth State Received: $state"); // Debug
           if (state is AuthInitial || state is AuthInProgress) {
-            // Kimlik durumu kontrol edilirken veya işlem yapılırken bekleme ekranı
-            // print("HomeGate: Showing Loading Screen."); // Debug
-            return const Scaffold(
-              // Temalı bir bekleme ekranı daha iyi olabilir
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           } else if (state is AuthLocked || state is AuthFailure) {
-            // Uygulama kilitliyse veya önceki deneme başarısızsa LockScreen'i göster
-            // print("HomeGate: Showing LockScreen."); // Debug
             return const LockScreen();
           } else if (state is AuthUnlocked || state is AuthSetupRequired) {
-            // Kilit açılmışsa veya PIN kurulumu gerekliyse (ayarlardan yapılır) MainScreen'i göster
-            // print("HomeGate: Showing MainScreen."); // Debug
             return const MainScreen();
           } else {
-            // Beklenmedik bir durum için fallback
-            // print("HomeGate: Showing Fallback Error Screen."); // Debug
-            return const Scaffold(
-              body: Center(child: Text("Beklenmedik bir kimlik doğrulama durumu!")),
-            );
+            return const Scaffold(body: Center(child: Text("Beklenmedik bir kimlik durumu!")));
           }
         },
       );
@@ -173,15 +213,13 @@ class HomeGate extends StatelessWidget {
   }
 }
 
-
-/// Başlatma sırasında hata oluşursa gösterilecek basit bir ekran.
+/// Başlatma Hatası Ekranı
 class InitializationErrorScreen extends StatelessWidget {
   final Object error;
   const InitializationErrorScreen({super.key, required this.error});
 
   @override
   Widget build(BuildContext context) {
-    // Bu widget aynı kalabilir
     return MaterialApp(
       home: Scaffold(
         body: Center(

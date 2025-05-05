@@ -545,4 +545,72 @@ class MindVaultRepository {
       throw MindVaultRepositoryException('Tüm günlük girdileri silinemedi', cause: e);
     }
   }
+
+
+  /// Tüm günlük girdilerini tarayarak kullanılan benzersiz etiketlerin listesini döndürür.
+  /// Etiketler alfabetik olarak sıralanır.
+  Future<List<String>> getAllUniqueTags() async {
+    _ensureInitialized();
+    if (kDebugMode) { print("Repository: Fetching all unique tags from Hive..."); }
+    try {
+      final allEntries = _journalBox!.values;
+      final Set<String> uniqueTags = {}; // Set kullanarak tekrarları önle
+
+      for (var entry in allEntries) {
+        if (entry.tags != null) {
+          for (var tag in entry.tags!) {
+            // Etiketleri küçük harfe çevirerek ve boşlukları temizleyerek ekleyelim
+            final cleanedTag = tag.trim().toLowerCase();
+            if (cleanedTag.isNotEmpty) {
+              uniqueTags.add(tag.trim()); // Orijinal halini (büyük/küçük harf) saklayalım
+            }
+          }
+        }
+      }
+
+      // Set'i listeye çevir ve sırala
+      final sortedTags = uniqueTags.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+      if (kDebugMode) { print('Repository: Fetched ${sortedTags.length} unique tags.'); }
+      return sortedTags;
+    } catch (e, stackTrace) {
+      if (kDebugMode) { print('Repository: Failed to get unique tags from Hive: $e\n$stackTrace'); }
+      throw MindVaultRepositoryException('Etiketler alınamadı', cause: e);
+    }
+  }
+
+  /// Belirtilen etikete sahip tüm günlük girdilerini döndürür.
+  /// Etiket karşılaştırması büyük/küçük harf duyarsız yapılır.
+  /// Girdiler tarihe göre (en yeni üstte) sıralanır.
+  Future<List<JournalEntry>> getEntriesByTag(String tag) async {
+    _ensureInitialized();
+    final String lowerCaseTag = tag.trim().toLowerCase();
+    if (lowerCaseTag.isEmpty) return []; // Boş etiket için boş liste döndür
+
+    if (kDebugMode) { print("Repository: Fetching entries for tag: '$tag' (case-insensitive) from Hive..."); }
+    try {
+      final List<JournalEntry> matchingEntries = [];
+      // Tüm girdileri kontrol et (Hive doğrudan etiket sorgusunu desteklemez)
+      for (var entry in _journalBox!.values) {
+        if (entry.tags != null &&
+            entry.tags!.any((entryTag) => entryTag.trim().toLowerCase() == lowerCaseTag)) {
+          matchingEntries.add(entry);
+        }
+      }
+
+      // Bulunan girdileri tarihe göre sırala
+      matchingEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      if (kDebugMode) { print('Repository: Found ${matchingEntries.length} entries for tag "$tag".'); }
+      return matchingEntries;
+    } catch (e, stackTrace) {
+      if (kDebugMode) { print('Repository: Failed to get entries by tag from Hive: $e\n$stackTrace'); }
+      throw MindVaultRepositoryException('Etikete göre girdiler alınamadı', cause: e);
+    }
+  }
+// --- ETİKET METOTLARI SONU ---
+
+
+
+
 }
