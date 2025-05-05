@@ -2,7 +2,7 @@
 // Bu ekran tema UYGULAMAZ. Sadece stilleri gösterir, uygulananı sola alır,
 // tıklanan minik resme kayar ve seçilen stili ayarlamak üzere Ayarlar'a geri döner.
 
-import 'dart:math'; // clamp için eklendi
+// clamp için eklendi
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // ========== !!! Gerekli Import'lar !!! ==========
@@ -409,7 +409,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               fit: StackFit.expand,
               children: [
                 // Küçük resim önizlemesi
-                Image.asset( theme.backgroundAssetPath, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container( color: theme.materialTheme.colorScheme.surfaceVariant, child: Icon(Icons.image_not_supported_outlined, size: 20, color: theme.materialTheme.colorScheme.onSurfaceVariant),),),
+                Image.asset( theme.backgroundAssetPath, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container( color: theme.materialTheme.colorScheme.surfaceContainerHighest, child: Icon(Icons.image_not_supported_outlined, size: 20, color: theme.materialTheme.colorScheme.onSurfaceVariant),),),
                 // Kilit ikonu
                 if (isLocked) Positioned( top: 4, right: 4, child: Icon(Icons.lock, size: 14, color: Colors.white.withOpacity(0.85), shadows: const [Shadow(blurRadius: 2, color: Colors.black54)]),),
                 // Uygulandı ikonu

@@ -1,389 +1,274 @@
+// lib/features/journal/bloc/journal_bloc.dart
 // ignore_for_file: unused_local_variable
 
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // kDebugMode için
 import 'package:mindvault/features/journal/model/journal_entry.dart';
 import 'package:mindvault/features/journal/repository/mindvault_repository.dart';
 
-// Repository, Model, Event ve State dosyalarını import et
-// Kendi proje yollarınızı kullandığınızdan emin olun
-
-// Event ve State dosyalarını 'part' olarak dahil etme (eğer o dosyalarda 'part of' kullandıysanız)
 part 'journal_event.dart';
 part 'journal_state.dart';
 
-/// Journal (Günlük) özelliği için iş mantığını yöneten BLoC.
-/// Olayları alır, Repository ile etkileşime girer ve UI için durumları yayınlar.
 class JournalBloc extends Bloc<JournalEvent, JournalState> {
-  /// Repository'ye erişim için.
   final MindVaultRepository _repository;
+  List<JournalEntry> _allEntries = [];
 
-  /// Constructor: Gerekli repository'yi alır ve başlangıç durumunu ayarlar.
-  /// Olay dinleyicilerini kaydeder.
   JournalBloc({required MindVaultRepository repository})
       : _repository = repository,
-        super(const JournalInitial()) { // Başlangıç durumu JournalInitial
-    // Olay dinleyicilerini (handler) kaydetme
+        super(const JournalInitial()) {
+    // Olay dinleyicileri
     on<LoadJournalEntries>(_onLoadJournalEntries);
     on<AddJournalEntry>(_onAddJournalEntry);
     on<UpdateJournalEntry>(_onUpdateJournalEntry);
     on<DeleteJournalEntry>(_onDeleteJournalEntry);
-
-    // Gelecekteki olaylar için handler kayıtları (şimdilik taslak)
-    on<LoadJournalEntryById>(_onLoadJournalEntryById);
-    on<FilterJournalEntries>(_onFilterJournalEntries);
+    // Eski filtre olayı kaldırıldı veya isteğe bağlı olarak yeniye yönlendirilebilir
+    // on<FilterJournalEntries>(_onFilterJournalEntries);
+    on<FilterJournalEntriesByCriteria>(_onFilterJournalEntriesByCriteria); // GÜNCELLENMİŞ olay
     on<ToggleFavoriteStatus>(_onToggleFavoriteStatus);
     on<ClearJournal>(_onClearJournal);
+    on<LoadJournalEntryById>(_onLoadJournalEntryById);
   }
 
-  // --- Olay İşleyici Metotları (Event Handlers) ---
+  // --- CRUD ve Load Metotları (Filtre Koruması Eklendi/Güncellendi) ---
 
-  /// `LoadJournalEntries` olayını işler: Tüm girdileri yükler.
-  Future<void> _onLoadJournalEntries(
-      LoadJournalEntries event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received LoadJournalEntries event.");
-    }
-    // Yükleme durumunu yayınla
+  Future<void> _onLoadJournalEntries(LoadJournalEntries event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received LoadJournalEntries event."); }
     emit(const JournalLoading(message: "Günlükler yükleniyor..."));
     try {
-      // Repository'den tüm girdileri al
-      final List<JournalEntry> entries = await _repository.getAllEntries();
-      // Başarı durumunu güncel liste ile yayınla
-      emit(JournalLoadSuccess(entries));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess with ${entries.length} entries.");
-      }
+      _allEntries = await _repository.getAllEntries();
+      // Filtre yok (başlangıçta)
+      emit(JournalLoadSuccess(_allEntries));
+      if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess with ${_allEntries.length} entries."); }
     } on MindVaultRepositoryException catch (e) {
-      // Repository'den gelen özel hatayı yakala
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during LoadJournalEntries: $e");
-      }
+      if (kDebugMode) { print("JournalBloc: Load Repo Exception: $e"); }
       emit(JournalFailure(e.message, error: e));
     } catch (e, stackTrace) {
-      // Beklenmedik diğer hataları yakala
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during LoadJournalEntries: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlükler yüklenirken beklenmedik bir hata oluştu.", error: e as Exception?));
+      if (kDebugMode) { print("JournalBloc: Load Exception: $e\n$stackTrace"); }
+      emit(JournalFailure("Günlükler yüklenirken hata.", error: e as Exception?));
     }
   }
 
-  /// `AddJournalEntry` olayını işler: Yeni bir girdi ekler.
-  Future<void> _onAddJournalEntry(
-      AddJournalEntry event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received AddJournalEntry event for ID: ${event.entry.id}.");
-    }
-    // Mevcut durumu koruyarak (eğer liste varsa) veya genel bir yükleme durumu yayınla
-    emit(const JournalLoading(message: "Günlük ekleniyor...")); // Veya önceki state'i koru?
-
+  Future<void> _onAddJournalEntry(AddJournalEntry event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received AddJournalEntry event."); }
+    final previousState = state;
     try {
-      // Repository'ye ekleme işlemini yaptır
       await _repository.addEntry(event.entry);
-      if (kDebugMode) {
-        print("JournalBloc: Entry added via repository.");
-      }
-      // Başarılı ekleme sonrası güncel listeyi yükleyip yayınla
-      // Bu, UI'ın hemen güncellenmesini sağlar.
-      final List<JournalEntry> updatedEntries = await _repository.getAllEntries();
-      emit(JournalLoadSuccess(updatedEntries));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess after adding entry.");
-      }
-      // Alternatif: Önce 'JournalOperationSuccess' sonra 'JournalLoadSuccess' emit edilebilir.
-      // emit(const JournalOperationSuccess("Günlük başarıyla eklendi!"));
-      // await Future.delayed(Duration(milliseconds: 50)); // Kısa bekleme (opsiyonel)
-      // emit(JournalLoadSuccess(updatedEntries));
-    } on MindVaultRepositoryException catch (e) {
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during AddJournalEntry: $e");
-      }
-      emit(JournalFailure(e.message, error: e));
-      // Hata sonrası belki eski listeyi tekrar yayınlamak gerekebilir?
-      // Eğer önceki state JournalLoadSuccess ise: if (state is JournalLoadSuccess) emit(state);
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during AddJournalEntry: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlük eklenirken beklenmedik bir hata oluştu.", error: e as Exception?));
+      _allEntries = await _repository.getAllEntries();
+      // Ekleme sonrası filtreler sıfırlanır
+      emit(JournalLoadSuccess(_allEntries));
+      if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess after adding."); }
+    } catch (e, stackTrace) { // Hata yönetimi (önceki gibi)
+      if (kDebugMode) { print("JournalBloc: Add Exception: $e\n$stackTrace"); }
+      if (previousState is JournalLoadSuccess) emit(previousState);
+      emit(JournalFailure("Ekleme hatası: ${e.toString()}", error: e as Exception?));
     }
   }
 
-  /// `UpdateJournalEntry` olayını işler: Mevcut bir girdiyi günceller.
-  Future<void> _onUpdateJournalEntry(
-      UpdateJournalEntry event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received UpdateJournalEntry event for ID: ${event.entry.id}.");
-    }
-    emit(const JournalLoading(message: "Günlük güncelleniyor..."));
-
+  Future<void> _onUpdateJournalEntry(UpdateJournalEntry event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received UpdateJournalEntry event."); }
+    final previousState = state;
     try {
-      // Repository'ye güncelleme işlemini yaptır
       await _repository.updateEntry(event.entry);
-      if (kDebugMode) {
-        print("JournalBloc: Entry updated via repository.");
-      }
-
-      // Başarılı güncelleme sonrası güncel listeyi yükleyip yayınla
-      final List<JournalEntry> updatedEntries = await _repository.getAllEntries();
-      emit(JournalLoadSuccess(updatedEntries));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess after updating entry.");
-      }
-    } on MindVaultRepositoryException catch (e) {
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during UpdateJournalEntry: $e");
-      }
-      emit(JournalFailure(e.message, error: e));
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during UpdateJournalEntry: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlük güncellenirken beklenmedik bir hata oluştu.", error: e as Exception?));
+      _allEntries = await _repository.getAllEntries();
+      // Güncelleme sonrası filtreleri koru
+      _emitFilteredStateIfNeeded(previousState, emit);
+      if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess after updating (filters preserved)."); }
+    } catch (e, stackTrace) { // Hata yönetimi (önceki gibi)
+      if (kDebugMode) { print("JournalBloc: Update Exception: $e\n$stackTrace"); }
+      if (previousState is JournalLoadSuccess) emit(previousState);
+      emit(JournalFailure("Güncelleme hatası: ${e.toString()}", error: e as Exception?));
     }
   }
 
-  /// `DeleteJournalEntry` olayını işler: Bir girdiyi siler.
-  Future<void> _onDeleteJournalEntry(
-      DeleteJournalEntry event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received DeleteJournalEntry event for ID: ${event.entryId}.");
-    }
-    emit(const JournalLoading(message: "Günlük siliniyor..."));
-
+  Future<void> _onDeleteJournalEntry(DeleteJournalEntry event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received DeleteJournalEntry event."); }
+    final previousState = state;
     try {
-      // Repository'ye silme işlemini yaptır
       await _repository.deleteEntry(event.entryId);
-      if (kDebugMode) {
-        print("JournalBloc: Entry deleted via repository.");
-      }
-
-      // Başarılı silme sonrası güncel listeyi yükleyip yayınla
-      final List<JournalEntry> updatedEntries = await _repository.getAllEntries();
-      emit(JournalLoadSuccess(updatedEntries));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess after deleting entry.");
-      }
-      // İsteğe bağlı: Silme sonrası anlık mesaj için JournalOperationSuccess emit edilebilir.
-    } on MindVaultRepositoryException catch (e) {
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during DeleteJournalEntry: $e");
-      }
-      emit(JournalFailure(e.message, error: e));
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during DeleteJournalEntry: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlük silinirken beklenmedik bir hata oluştu.", error: e as Exception?));
+      _allEntries = await _repository.getAllEntries();
+      // Silme sonrası filtreleri koru
+      _emitFilteredStateIfNeeded(previousState, emit);
+      if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess after deleting (filters preserved)."); }
+    } catch (e, stackTrace) { // Hata yönetimi (önceki gibi)
+      if (kDebugMode) { print("JournalBloc: Delete Exception: $e\n$stackTrace"); }
+      if (previousState is JournalLoadSuccess) emit(previousState);
+      emit(JournalFailure("Silme hatası: ${e.toString()}", error: e as Exception?));
     }
   }
 
-
-  // --- Gelecekteki Olaylar İçin Taslak İşleyiciler ---
-
-  Future<void> _onLoadJournalEntryById(
-      LoadJournalEntryById event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received LoadJournalEntryById event for ID: ${event.entryId}.");
-    }
-    // Bu olay genellikle liste state'ini değiştirmez, belki ayrı bir BLoC veya
-    // UI tarafında doğrudan repository çağrısı ile yönetilir.
-    // Şimdilik sadece hata durumunu ele alalım veya state'i değiştirmeyelim.
-    emit(const JournalLoading(message: "Detaylar yükleniyor...")); // Veya state'i değiştirmeyebiliriz
+  Future<void> _onToggleFavoriteStatus(ToggleFavoriteStatus event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received ToggleFavoriteStatus event."); }
+    final previousState = state;
     try {
       final entry = await _repository.getEntryById(event.entryId);
       if (entry != null) {
-        if (kDebugMode) {
-          print("JournalBloc: Entry detail loaded for ID: ${event.entryId}.");
-        }
-        // Başarılı durumu yayınla - Belki yeni bir state tipi?
-        // emit(JournalEntryDetailLoadSuccess(entry)); // Eğer böyle bir state tanımladıysak
-        // Veya mevcut state'i koru, UI bu veriyi başka yolla alsın.
-        // Şimdilik sadece loglayalım ve önceki state'e dönelim (veya başarı state'ine)
-        if (state is JournalLoading) { // Eğer hala loading ise başarıya dön
-          final currentEntries = await _repository.getAllEntries();
-          emit(JournalLoadSuccess(currentEntries));
-        }
-      } else {
-        if (kDebugMode) {
-          print("JournalBloc: Entry not found for ID: ${event.entryId}.");
-        }
-        emit(JournalFailure("Günlük girdisi bulunamadı."));
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Exception during LoadJournalEntryById: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlük detayı yüklenirken hata oluştu.", error: e as Exception?));
+        await _repository.updateEntry(entry.copyWith(isFavorite: !event.currentStatus, updatedAt: DateTime.now()));
+        _allEntries = await _repository.getAllEntries();
+        // Favori değiştirme sonrası filtreleri koru
+        _emitFilteredStateIfNeeded(previousState, emit);
+        if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess after toggle favorite (filters preserved)."); }
+      } else { /* Girdi bulunamadı durumu */ }
+    } catch (e, stackTrace) { // Hata yönetimi (önceki gibi)
+      if (kDebugMode) { print("JournalBloc: ToggleFav Exception: $e\n$stackTrace"); }
+      if (previousState is JournalLoadSuccess) emit(previousState);
+      emit(JournalFailure("Favori değiştirme hatası: ${e.toString()}", error: e as Exception?));
     }
   }
 
-  Future<void> _onFilterJournalEntries(
-      FilterJournalEntries event,
+  Future<void> _onClearJournal(ClearJournal event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received ClearJournal event."); }
+    emit(const JournalLoading(message: "Tüm günlükler siliniyor..."));
+    try {
+      await _repository.deleteAllEntries();
+      _allEntries = [];
+      // Temizleme sonrası filtreler de temizlenir
+      emit(JournalLoadSuccess(_allEntries));
+      if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess after clear."); }
+    } catch (e, stackTrace) { // Hata yönetimi (önceki gibi)
+      if (kDebugMode) { print("JournalBloc: Clear Exception: $e\n$stackTrace"); }
+      emit(JournalFailure("Temizleme hatası: ${e.toString()}", error: e as Exception?));
+      emit(JournalLoadSuccess(_allEntries)); // Boş liste ile emit
+    }
+  }
+
+
+  // --- Filtreleme İşleyicisi (GÜNCELLENDİ) ---
+
+  /// Kriterlere göre filtreleme (Metin ve/veya Mood Listesi)
+  Future<void> _onFilterJournalEntriesByCriteria(
+      FilterJournalEntriesByCriteria event,
       Emitter<JournalState> emit,
       ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received FilterJournalEntries event with query: ${event.query}.");
-    }
-    // Filtreleme genellikle mevcut 'JournalLoadSuccess' durumu üzerinden yapılır.
-    if (state is JournalLoadSuccess) {
-      final currentState = state as JournalLoadSuccess;
-      emit(const JournalLoading(message: "Filtreleniyor...")); // İsteğe bağlı
+
+    final query = event.query?.trim();       // Metin sorgusu
+    final moods = event.moods; // Ruh hali listesi
+
+    if (kDebugMode) { print("JournalBloc: Filtering by Criteria - Query: '$query', Moods: ${moods?.map((m) => m.name).toList()}"); }
+
+    // Başarılı yükleme state'i veya başlangıç state'i kontrolü
+    if (state is JournalLoadSuccess || state is JournalInitial) {
+
+      // Eğer _allEntries boşsa (ilk filtreleme veya hata sonrası), veriyi yükle
+      if (_allEntries.isEmpty && state is! JournalLoading) {
+        if (kDebugMode) { print("JournalBloc: _allEntries is empty, loading first for filtering..."); }
+        await _onLoadJournalEntries(const LoadJournalEntries(), emit);
+        final currentStateAfterLoad = state;
+        if (currentStateAfterLoad is! JournalLoadSuccess) {
+          if (kDebugMode) { print("JournalBloc: Failed to load entries before filtering."); }
+          return; // Yükleme başarısızsa devam etme
+        }
+      }
+
+      // Filtreleme mantığı
       try {
-        // Filtreleme mantığını burada uygula (basit contains örneği)
-        final query = event.query.toLowerCase();
-        final filteredEntries = currentState.entries.where((entry) {
-          return entry.content.toLowerCase().contains(query) ||
-              (entry.tags?.any((tag) => tag.toLowerCase().contains(query)) ?? false);
-        }).toList();
+        final bool noTextQuery = query == null || query.isEmpty;
+        final bool noMoodFilter = moods == null || moods.isEmpty; // Liste boşsa filtre yok
 
-        // Filtrelenmiş sonucu içeren yeni bir state yayınla
-        // JournalLoadSuccess state'ini filtre bilgisi içerecek şekilde güncellemek gerekebilir.
-        // Şimdilik, sadece filtrelenmiş listeyi içeren yeni bir Success durumu yayınlayalım
-        // (Bu, orijinal listeyi kaybedebilir, dikkatli olunmalı!)
-        // emit(JournalLoadSuccess(filteredEntries)); // Basit yaklaşım
-
-        // Daha iyi yaklaşım: State'i güncellemek
-        emit(JournalLoadSuccess(currentState.entries)); // Filtrelenmiş listeyi ayrı tutabiliriz
-        // veya state'e ek alan ekleyebiliriz.
-        if (kDebugMode) {
-          print("JournalBloc: Filtering completed. (Filtering logic needs refinement in state)");
+        // Mevcut state'in filtre durumunu al (varsa)
+        bool currentlyFiltered = false;
+        if(state is JournalLoadSuccess){
+          currentlyFiltered = (state as JournalLoadSuccess).isFiltered;
         }
 
+        if (noTextQuery && noMoodFilter) {
+          // Uygulanacak filtre yoksa ve şu an filtreliyse, filtreyi kaldır
+          if (currentlyFiltered) {
+            if (kDebugMode) { print("JournalBloc: Clearing all filters."); }
+            emit(JournalLoadSuccess(_allEntries)); // Filtresiz state
+          } else {
+            if (kDebugMode) { print("JournalBloc: No filters to apply or clear."); }
+            // Zaten filtresizse tekrar emit etmeye gerek yok
+          }
+        } else {
+          // Uygulanacak en az bir filtre varsa
+          if (kDebugMode) { print("JournalBloc: Applying filters..."); }
+          final filtered = _filterEntries(_allEntries, query: query, moods: moods); // GÜNCELLENMİŞ filtreleme metodu
+          emit(JournalLoadSuccess(
+            _allEntries, // Ana liste her zaman tam
+            filteredEntries: filtered,
+            currentFilterQuery: query, // Null olabilir
+            currentMoodFilters: moods, // Null veya boş olabilir
+          ));
+          if (kDebugMode) { print("JournalBloc: Emitted JournalLoadSuccess with ${filtered.length} filtered entries."); }
+        }
       } catch (e, stackTrace) {
-        if (kDebugMode) {
-          print("JournalBloc: Exception during FilterJournalEntries: $e");
-        }
-        if (kDebugMode) {
-          print(stackTrace);
-        }
-        emit(JournalFailure("Filtreleme sırasında hata oluştu.", error: e as Exception?));
+        if (kDebugMode) { print("JournalBloc: Exception during FilterByCriteria: $e\n$stackTrace"); }
+        emit(JournalLoadSuccess(_allEntries)); // Hata durumunda filtreyi temizle
+        emit(JournalFailure("Filtreleme hatası.", error: e as Exception?));
       }
 
     } else {
-      if (kDebugMode) {
-        print("JournalBloc: Cannot filter because current state is not JournalLoadSuccess.");
-      }
-      // Belki hata verilebilir veya sadece event görmezden gelinebilir.
+      // Yükleme sırasında veya hata durumunda filtreleme yapma
+      if (kDebugMode) { print("JournalBloc: Cannot filter in current state: $state"); }
     }
   }
 
-  Future<void> _onToggleFavoriteStatus(
-      ToggleFavoriteStatus event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received ToggleFavoriteStatus event for ID: ${event.entryId}.");
+  /// Mevcut filtreleri koruyarak state'i yeniden emit etme yardımcısı.
+  void _emitFilteredStateIfNeeded(JournalState previousState, Emitter<JournalState> emit) {
+    String? currentQuery;
+    List<Mood>? currentMoods; // Liste olarak al
+    // Önceki state'ten filtreleri al (varsa)
+    if (previousState is JournalLoadSuccess) {
+      currentQuery = previousState.currentFilterQuery;
+      currentMoods = previousState.currentMoodFilters; // Listeyi al
     }
-    // Yükleme durumu gösterilebilir
-    // emit(const JournalLoading(message: "Favori durumu güncelleniyor..."));
 
-    try {
-      // 1. Mevcut girdiyi al
-      final currentEntry = await _repository.getEntryById(event.entryId);
-      if (currentEntry == null) {
-        throw MindVaultRepositoryException("Favori durumu değiştirilecek girdi bulunamadı.");
-      }
-
-      // 2. Yeni favori durumu ile girdiyi kopyala
-      final updatedEntry = currentEntry.copyWith(
-        isFavorite: !event.currentStatus, // Durumu tersine çevir
-        updatedAt: DateTime.now(), // Güncelleme zamanını ayarla
-      );
-
-      // 3. Repository'de güncelle
-      await _repository.updateEntry(updatedEntry);
-      if (kDebugMode) {
-        print("JournalBloc: Toggled favorite status via repository.");
-      }
-
-      // 4. Başarı sonrası listeyi yeniden yükle
-      final List<JournalEntry> updatedEntries = await _repository.getAllEntries();
-      emit(JournalLoadSuccess(updatedEntries));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess after toggling favorite.");
-      }
-
-    } on MindVaultRepositoryException catch (e) {
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during ToggleFavoriteStatus: $e");
-      }
-      // Önemli: Hata durumunda UI'ın eski haline dönmesi için listeyi tekrar yükleyebiliriz.
-      final List<JournalEntry> currentEntries = await _repository.getAllEntries();
-      emit(JournalLoadSuccess(currentEntries)); // Veya JournalFailure
-      // emit(JournalFailure(e.message, error: e));
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during ToggleFavoriteStatus: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Favori durumu güncellenirken hata oluştu.", error: e as Exception?));
+    // Eğer filtre varsa, filtrelenmiş listeyi _allEntries'in güncel haliyle yeniden hesapla
+    List<JournalEntry>? updatedFilteredEntries;
+    if ((currentQuery != null && currentQuery.isNotEmpty) || (currentMoods != null && currentMoods.isNotEmpty)) {
+      updatedFilteredEntries = _filterEntries(_allEntries, query: currentQuery, moods: currentMoods); // Listeyi gönder
     }
+
+    // Yeni state'i emit et
+    emit(JournalLoadSuccess(
+        _allEntries,
+        filteredEntries: updatedFilteredEntries,
+        currentFilterQuery: currentQuery,
+        currentMoodFilters: currentMoods // Listeyi state'e yaz
+    ));
   }
 
-  Future<void> _onClearJournal(
-      ClearJournal event,
-      Emitter<JournalState> emit,
-      ) async {
-    if (kDebugMode) {
-      print("JournalBloc: Received ClearJournal event.");
-    }
-    emit(const JournalLoading(message: "Tüm günlükler siliniyor..."));
 
-    try {
-      await _repository.deleteAllEntries(); // Repository'deki metodu çağır
-      if (kDebugMode) {
-        print("JournalBloc: All entries cleared via repository.");
-      }
-      // Başarı durumunda boş liste ile state'i güncelle
-      emit(const JournalLoadSuccess([]));
-      if (kDebugMode) {
-        print("JournalBloc: Emitted JournalLoadSuccess with empty list after clear.");
-      }
-    } on MindVaultRepositoryException catch (e) {
-      if (kDebugMode) {
-        print("JournalBloc: Repository Exception during ClearJournal: $e");
-      }
-      emit(JournalFailure(e.message, error: e));
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print("JournalBloc: Unexpected Exception during ClearJournal: $e");
-      }
-      if (kDebugMode) {
-        print(stackTrace);
-      }
-      emit(JournalFailure("Günlükler silinirken beklenmedik bir hata oluştu.", error: e as Exception?));
+  /// GÜNCELLENMİŞ: Hem metin hem de mood listesine göre filtreleme yapan yardımcı metot.
+  List<JournalEntry> _filterEntries(List<JournalEntry> entries, {String? query, List<Mood>? moods}) {
+    final String lowerCaseQuery = query?.toLowerCase() ?? '';
+    final bool hasTextQuery = lowerCaseQuery.isNotEmpty;
+    final bool hasMoodFilter = moods != null && moods.isNotEmpty; // Liste null değil ve boş değilse filtre var
+
+    // Eğer uygulanacak filtre yoksa tüm listeyi döndür
+    if (!hasTextQuery && !hasMoodFilter) {
+      return entries;
     }
+
+    // Set<Mood> oluşturmak aramayı hızlandırabilir (eğer liste büyükse)
+    final Set<Mood>? moodFilterSet = hasMoodFilter ? Set.from(moods) : null;
+
+    return entries.where((entry) {
+      // Metin kontrolü (eğer metin sorgusu varsa)
+      bool textMatch = !hasTextQuery; // Metin sorgusu yoksa, varsayılan olarak eşleşir
+      if (hasTextQuery) {
+        final contentMatch = entry.content.toLowerCase().contains(lowerCaseQuery);
+        final titleMatch = entry.title?.toLowerCase().contains(lowerCaseQuery) ?? false;
+        final tagMatch = entry.tags?.any((tag) => tag.toLowerCase().contains(lowerCaseQuery)) ?? false;
+        textMatch = contentMatch || titleMatch || tagMatch;
+      }
+
+      // Ruh hali kontrolü (eğer ruh hali filtresi varsa)
+      bool moodMatch = !hasMoodFilter; // Mood filtresi yoksa, varsayılan olarak eşleşir
+      if (hasMoodFilter) {
+        // Girdinin mood'u null olamaz ve seçilen mood'lardan biri olmalı
+        moodMatch = entry.mood != null && moodFilterSet!.contains(entry.mood);
+      }
+
+      // Girdinin geçmesi için HER İKİ aktif filtrenin de sağlanması gerekir
+      return textMatch && moodMatch;
+    }).toList();
+  }
+
+  // _onLoadJournalEntryById aynı kalabilir.
+  Future<void> _onLoadJournalEntryById(LoadJournalEntryById event, Emitter<JournalState> emit) async {
+    if (kDebugMode) { print("JournalBloc: Received LoadJournalEntryById (No state change)."); }
   }
 }

@@ -130,6 +130,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     return ThemedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
         appBar: currentAppBar, // Koşullu AppBar atanıyor
         body: Stack(
           children: [

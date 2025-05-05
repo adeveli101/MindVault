@@ -1,10 +1,6 @@
 // lib/features/journal/bloc/journal_event.dart
 
-
-
 part of 'journal_bloc.dart'; // Bloc dosyasına ait olduğunu belirtir
-
-
 
 /// JournalBloc tarafından işlenecek olayların temel soyut sınıfı.
 abstract class JournalEvent extends Equatable {
@@ -15,92 +11,27 @@ abstract class JournalEvent extends Equatable {
 }
 
 // --- Temel CRUD ve Yükleme Olayları ---
+class LoadJournalEntries extends JournalEvent { const LoadJournalEntries(); }
+class AddJournalEntry extends JournalEvent { final JournalEntry entry; const AddJournalEntry(this.entry); @override List<Object?> get props => [entry]; }
+class UpdateJournalEntry extends JournalEvent { final JournalEntry entry; const UpdateJournalEntry(this.entry); @override List<Object?> get props => [entry]; }
+class DeleteJournalEntry extends JournalEvent { final String entryId; const DeleteJournalEntry(this.entryId); @override List<Object?> get props => [entryId]; }
 
-/// Tüm günlük girdilerinin yüklenmesini veya güncel listesinin alınmasını tetikler.
-/// Genellikle ilk açılışta veya 'pull-to-refresh' gibi eylemlerde kullanılır.
-class LoadJournalEntries extends JournalEvent {
-  const LoadJournalEntries();
-// Props'a bir şey eklemeye gerek yok
-}
+// --- Filtreleme Olayı (GÜNCELLENDİ) ---
+class FilterJournalEntriesByCriteria extends JournalEvent {
+  final String? query;       // Metin sorgusu (opsiyonel)
+  final List<Mood>? moods; // Seçilen ruh halleri listesi (opsiyonel, null veya boş ise filtre yok)
 
-/// Yeni bir günlük girdisi eklenmesini tetikler.
-class AddJournalEntry extends JournalEvent {
-  /// Eklenecek yeni günlük girdisi nesnesi.
-  final JournalEntry entry;
-
-  const AddJournalEntry(this.entry);
+  // Hem query hem de moods null/boş ise tüm filtreler kaldırılır.
+  const FilterJournalEntriesByCriteria({this.query, this.moods});
 
   @override
-  List<Object?> get props => [entry];
+  List<Object?> get props => [query, moods];
 }
 
-/// Mevcut bir günlük girdisinin güncellenmesini tetikler.
-class UpdateJournalEntry extends JournalEvent {
-  /// Güncellenmiş verileri içeren JournalEntry nesnesi.
-  /// BLoC, bu nesnenin 'id' alanını kullanarak Repository'de güncelleme yapar.
-  final JournalEntry entry;
+// --- Diğer Olaylar ---
+class LoadJournalEntryById extends JournalEvent { final String entryId; const LoadJournalEntryById(this.entryId); @override List<Object?> get props => [entryId]; }
+class ToggleFavoriteStatus extends JournalEvent { final String entryId; final bool currentStatus; const ToggleFavoriteStatus({required this.entryId, required this.currentStatus}); @override List<Object?> get props => [entryId, currentStatus]; }
+class ClearJournal extends JournalEvent { const ClearJournal(); }
 
-  const UpdateJournalEntry(this.entry);
-
-  @override
-  List<Object?> get props => [entry];
-}
-
-/// Belirli bir günlük girdisinin silinmesini tetikler.
-class DeleteJournalEntry extends JournalEvent {
-  /// Silinecek günlük girdisinin benzersiz ID'si.
-  final String entryId;
-
-  const DeleteJournalEntry(this.entryId);
-
-  @override
-  List<Object?> get props => [entryId];
-}
-
-
-// --- Geleceğe Yönelik ve Ek İşlevsellik Olayları ---
-
-/// Belirli bir ID'ye sahip tek bir günlük girdisinin detaylarını yüklemeyi tetikler.
-/// (Örn: Bir liste öğesine tıklandığında detay ekranı için veri çekmek.)
-class LoadJournalEntryById extends JournalEvent {
-  /// Detayları yüklenecek girdinin ID'si.
-  final String entryId;
-
-  const LoadJournalEntryById(this.entryId);
-
-  @override
-  List<Object?> get props => [entryId];
-}
-
-/// Günlük girdilerini belirli bir kritere göre filtrelemeyi veya aramayı tetikler.
-class FilterJournalEntries extends JournalEvent {
-  /// Arama sorgusu veya filtreleme kriterleri.
-  /// Bu, basit bir String olabileceği gibi daha karmaşık bir filtre nesnesi de olabilir.
-  final String query; // Veya `FilterCriteria filter`
-
-  const FilterJournalEntries(this.query); // Veya `this.filter`
-
-  @override
-  List<Object?> get props => [query]; // Veya `[filter]`
-}
-
-/// Bir günlük girdisinin 'favori' durumunu değiştirmeyi tetikler.
-class ToggleFavoriteStatus extends JournalEvent {
-  /// Durumu değiştirilecek girdinin ID'si.
-  final String entryId;
-  /// Girdinin mevcut favori durumu (tersine çevirmek için kullanılır).
-  final bool currentStatus;
-
-  const ToggleFavoriteStatus({required this.entryId, required this.currentStatus});
-
-  @override
-  List<Object?> get props => [entryId, currentStatus];
-}
-
-
-/// Tüm günlük girdilerini silmeyi tetikler. **DİKKATLİ KULLANILMALI!**
-/// Ayarlar ekranında veya özel bir durumda kullanılabilir.
-class ClearJournal extends JournalEvent {
-  const ClearJournal();
-// Parametre yok
-}
+// Eski FilterJournalEntries olayı kaldırıldı veya isteğe bağlı olarak tutulabilir.
+// class FilterJournalEntries extends JournalEvent { ... }
