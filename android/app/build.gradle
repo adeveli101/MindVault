@@ -1,3 +1,4 @@
+
 plugins {
     id "com.android.application"
     // START: FlutterFire Configuration
@@ -10,9 +11,17 @@ plugins {
 }
 
 android {
+
+    def keystorePropertiesFile = rootProject.file("key.properties") // key.properties dosyanızın PROJE KÖK DİZİNİNE göre yolunu buraya yazın
+    def keystoreProperties = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+
     namespace = "com.adev.mindvault"
     compileSdk 35
     ndkVersion = '27.1.12297006'
+
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -39,10 +48,30 @@ android {
         multiDexEnabled true
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile']) // key.properties'teki storeFile yolu
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            } else {
+                // key.properties bulunamazsa varsayılan debug imzalamasını kullan
+                // veya bir hata fırlatabilirsiniz.
+                // Önemli: Google Play'e yüklemek için MUTLAKA kendi anahtarınızla imzalamalısınız.
+                signingConfig signingConfigs.debug
+                println "*** release imzalama için key.properties bulunamadı, debug anahtarı kullanılıyor! ***"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            // TODO: Uygulamanızı yayınlamadan önce ProGuard/R8 ayarlarını yapılandırın.
+            // signingConfig signingConfigs.debug // <-- BU SATIRI SİLİN VEYA YORUM SATIRI YAPIN
+            signingConfig signingConfigs.release // <-- BU SATIRI EKLEYİN
+            minifyEnabled true // Kod küçültme ve gizleme için önerilir
+            shrinkResources true // Kullanılmayan kaynakları kaldırmak için önerilir
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

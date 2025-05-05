@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/release
 /lib/firebase_options.dart
 /firebase.json
+
+
+# Keystore / Signing Keys
+key.properties
+*.jks
+*.keystore
+*.pkcs12
+# Eğer anahtar dosyanız farklı bir uzantıya sahipse onu da ekleyin
+# Örneğin: upload-keystore.jks (eğer belirli bir dosya adını dışlamak isterseniz)
+/android/key.properties  # Eğer android klasöründeyse tam yoluyla da eklenebilir
+/android/upload-keystore.jks # veya .pkcs12
