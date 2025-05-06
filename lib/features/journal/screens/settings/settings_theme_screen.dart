@@ -1,77 +1,93 @@
-// lib/features/journal/screens/home/settings_theme_screen.dart (Eksiksiz Son Hali)
+// lib/features/journal/screens/settings/settings_theme_screen.dart
+// Tema stilini ve boyutunu ayarlama ekranı.
+// ExploreScreen'den gelen başlangıç stilini kabul eder ve uygular.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mindvault/features/journal/screens/explore/explore_screen.dart';
-// ========== !!! IMPORT YOLLARINI KONTROL ET VE TUTARLI YAP !!! ==========
-// Paket adınız 'mindvault' ise aşağıdaki gibi olmalı. Değilse düzeltin.
-// BU DOSYADAKİ VE DİĞER TÜM DOSYALARDAKİ YOLLAR AYNI OLMALI!
+
+// Gerekli importlar (Yolları kontrol edin)
+import 'package:mindvault/features/journal/screens/explore/explore_screen.dart'; // Tüm temaları görme ekranı
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
-import 'package:mindvault/features/journal/screens/themes/theme_config.dart'; // Yeni Kayıt Merkezi config
-import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart';
-import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
-// ThemedBackground widget'ınızın doğru yolunu import edin:
-// =====================================================================
-import 'package:stacked_themes/stacked_themes.dart';
+import 'package:mindvault/features/journal/screens/themes/theme_config.dart'; // Tema yapılandırması
+import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart'; // Tema tipleri enum'ı
+import 'package:mindvault/features/journal/screens/themes/themed_background.dart'; // Standart arka plan
+import 'package:stacked_themes/stacked_themes.dart'; // Tema yönetimi paketi
 
 class SettingsThemeScreen extends StatefulWidget {
-  const SettingsThemeScreen({super.key});
+  // ***** YENİ: Başlangıç stilini almak için isteğe bağlı parametre *****
+  final NotebookThemeType? initialBaseStyle;
+  // *******************************************************************
+
+  // Constructor güncellendi: initialBaseStyle parametresini kabul ediyor
+  const SettingsThemeScreen({super.key, this.initialBaseStyle});
 
   @override
   State<SettingsThemeScreen> createState() => _SettingsThemeScreenState();
 }
 
 class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
-  // --- State Variables ---
-  late NotebookThemeType _selectedBaseStyle;
-  late ThemeSize _selectedSize;
-  late int _currentThemeIndex;
-  late PageController _pageController;
-  bool _showLeftArrow = false;
-  bool _showRightArrow = true;
+  // --- State Değişkenleri ---
+  late NotebookThemeType _selectedBaseStyle; // Kullanıcının seçtiği temel stil (örn: Deri, Antika)
+  late ThemeSize _selectedSize; // Kullanıcının seçtiği boyut (Küçük, Orta, Büyük)
+  late int _currentThemeIndex; // stacked_themes tarafından uygulanan temanın tam index'i
+  late PageController _pageController; // Yatay stil seçici (PageView) için kontrolcü
+  bool _showLeftArrow = false; // Stil listesi için sol ok göster/gizle
+  bool _showRightArrow = true; // Stil listesi için sağ ok göster/gizle
+  bool _isLoading = true; // Başlangıçta tema bilgileri yüklenirken
 
-  // --- UI Constants ---
-  final double _themeCardHeight = 180;
-  final double _viewportFraction = 0.5; // Kart genişliğini/görünürlüğünü ayarlar
+  // --- UI Sabitleri ---
+  final double _themeCardHeight = 180; // Stil kartlarının yüksekliği
+  final double _viewportFraction = 0.5; // PageView'da bir seferde görünen kart oranı
 
-  // --- Data ---
-  // baseThemes listesi initState içinde ThemeConfig'den alınacak
-  late final List<AppThemeData> baseThemes;
+  // --- Veri ---
+  late final List<AppThemeData> baseThemes; // Gösterilecek temel (Medium) tema listesi
 
-  //--------------------------------------------------------------------------
-  // Lifecycle Methods
-  //--------------------------------------------------------------------------
+  // --- Yaşam Döngüsü Metotları ---
   @override
   void initState() {
     super.initState();
-    // baseThemes listesini burada başlatmak önemli
+    // Temaları yükle (sadece medium boyutluları alır)
     baseThemes = ThemeConfig.getBaseThemeRepresentations();
-    // Eğer baseThemes boşsa (ThemeConfig hatası), hata mesajı veya varsayılan atama yapılabilir
+
+    // Eğer tema listesi boşsa (beklenmedik durum), hata göster ve geri dön
     if (baseThemes.isEmpty) {
-      if (kDebugMode) {
-        if (kDebugMode) {
-          print("UYARI: ThemeConfig.getBaseThemeRepresentations() BOŞ döndü! Tema listesi yüklenemedi.");
+      if (kDebugMode) { print("SettingsThemeScreen UYARI: Tema listesi yüklenemedi."); }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tema listesi yüklenemedi.")));
+          Navigator.pop(context); // Geri dön
         }
-      }
-      // Burada belki bir hata gösterme mekanizması eklenebilir.
+      });
+      _isLoading = false; // Yükleme bitti (başarısız)
+      return; // initState'ten çık
     }
 
-    _initializeState(); // Temayı ve seçili stili başlat
+    // Başlangıç state'ini ayarla (gelen initialBaseStyle'ı dikkate alarak)
+    _initializeState();
 
-    // initialPage hesaplaması _selectedBaseStyle'dan sonra yapılmalı
-    final initialPageIndex = baseThemes.indexWhere(
-          (theme) => theme.type == _selectedBaseStyle,
-      // Eğer _selectedBaseStyle listede yoksa -1 döner, bu durumu handle et
-    );
-
+    // PageView başlangıç sayfasını, seçili stile göre ayarla
+    final initialPageIndex = baseThemes.indexWhere((theme) => theme.type == _selectedBaseStyle);
     _pageController = PageController(
-      viewportFraction: _viewportFraction,
-      initialPage: initialPageIndex != -1 ? initialPageIndex : 0,
+      viewportFraction: _viewportFraction, // Kenardaki kartların bir kısmı görünür
+      initialPage: initialPageIndex != -1 ? initialPageIndex : 0, // Bulunamazsa ilk sayfa
     );
 
+    // PageView kaydırıldıkça okları güncellemek için listener ekle
     _pageController.addListener(_updateScrollArrows);
-    // initState içinde doğrudan setState çağırmak yerine bu callback kullanılır
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollArrows());
+    // İlk build sonrası ok durumunu ve gerekirse PageView pozisyonunu ayarla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScrollArrows();
+      // Eğer Explore'dan gelindiyse ve PageView hemen scroll olmadıysa,
+      // küçük bir gecikme ile tekrar scroll deneyebiliriz.
+      if (widget.initialBaseStyle != null) {
+        Future.delayed(const Duration(milliseconds: 50), () => _scrollToSelectedStyle());
+      }
+    });
+
+    // Yükleme tamamlandı
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -81,135 +97,176 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
     super.dispose();
   }
 
-  //--------------------------------------------------------------------------
-  // Helper Methods for State Logic
-  //--------------------------------------------------------------------------
+  // --- State ve Yardımcı Metotlar ---
 
-  /// Sayfa kaydıkça okların görünürlüğünü günceller
+  /// Okların görünürlüğünü PageView pozisyonuna göre günceller.
   void _updateScrollArrows() {
-    // Widget ağaçtan kaldırıldıysa veya controller hazır değilse işlem yapma
     if (!_pageController.hasClients || !mounted) return;
-
     final currentPage = _pageController.page ?? _pageController.initialPage.toDouble();
     final maxPages = baseThemes.length;
-
-    // Eğer sadece 1 veya daha az tema varsa okları gösterme
+    // Eğer 1 veya daha az tema varsa okları gösterme
     if (maxPages <= 1) {
       if (_showLeftArrow || _showRightArrow) {
-        setState(() { _showLeftArrow = false; _showRightArrow = false;});
+        setState(() { _showLeftArrow = false; _showRightArrow = false; });
       }
       return;
     }
-
-    // Yeni ok durumlarını hesapla
+    // Yeni ok durumlarını hesapla (küçük bir toleransla)
     bool newShowLeft = currentPage > 0.1;
     bool newShowRight = currentPage < (maxPages - 1) - 0.1;
-
-    // Sadece değişiklik varsa setState çağır
+    // Sadece durum değiştiyse setState çağır
     if (newShowLeft != _showLeftArrow || newShowRight != _showRightArrow) {
-      setState(() {
-        _showLeftArrow = newShowLeft;
-        _showRightArrow = newShowRight;
-      });
+      setState(() { _showLeftArrow = newShowLeft; _showRightArrow = newShowRight; });
     }
   }
 
-  /// Başlangıç tema durumunu ayarlar
+  /// Başlangıç state'ini ayarlar: _selectedBaseStyle, _selectedSize, _currentThemeIndex.
+  /// ExploreScreen'den gelen `initialBaseStyle` parametresini öncelikli olarak kullanır.
   void _initializeState() {
-    final themeManager = getThemeManager(context);
-    _currentThemeIndex = themeManager.selectedThemeIndex ?? 0;
+    try {
+      final themeManager = getThemeManager(context);
+      // Eğer ExploreScreen'den bir stil gönderildiyse onu temel al
+      if (widget.initialBaseStyle != null && baseThemes.any((t) => t.type == widget.initialBaseStyle)) {
+        _selectedBaseStyle = widget.initialBaseStyle!;
+        // Boyutu, mevcut uygulanan temadan almayı dene
+        try {
+          final currentAppliedIndex = themeManager.selectedThemeIndex ?? 0;
+          final currentAppliedType = ThemeConfig.getThemeTypeByIndex(currentAppliedIndex);
+          _selectedSize = ThemeConfig.getThemeSize(currentAppliedType);
+        } catch(e) {
+          _selectedSize = ThemeSize.medium; // Alınamazsa varsayılan: Orta
+          if (kDebugMode) print("Mevcut tema boyutu alınamadı, Medium varsayıldı: $e");
+        }
+        if (kDebugMode) print("ExploreScreen'den gelen stil ile başlatılıyor: $_selectedBaseStyle, Boyut: $_selectedSize");
+        // Temayı hemen uygula (build sonrası çağrılacak)
+        WidgetsBinding.instance.addPostFrameCallback((_) => _updateTheme());
+        // _currentThemeIndex, _updateTheme içinde ayarlanacak.
+        _currentThemeIndex = themeManager.selectedThemeIndex ?? 0; // Geçici atama
 
-    // Yeni ThemeConfig helper'larını kullan
-    final currentThemeType = ThemeConfig.getThemeTypeByIndex(_currentThemeIndex);
-    _selectedBaseStyle = ThemeConfig.getBaseStyle(currentThemeType);
-    _selectedSize = ThemeConfig.getThemeSize(currentThemeType);
+      } else {
+        // Eğer ExploreScreen'den stil gelmediyse veya geçersizse, mevcut temayı yükle
+        if (kDebugMode && widget.initialBaseStyle != null) {if (kDebugMode) {
 
-    // Başlangıçta _selectedBaseStyle'ın baseThemes listesinde olduğundan emin ol
-    // Eğer değilse (örn. hatalı index veya liste), varsayılan bir stile ayarla
-    if (!baseThemes.any((theme) => theme.type == _selectedBaseStyle) && baseThemes.isNotEmpty) {
-      _selectedBaseStyle = baseThemes.first.type; // Listenin ilk temasını seç
-      // Seçili stili varsayılana ayarladıktan sonra temayı da güncellemek iyi olabilir
-      _updateTheme();
+          print("Uyarı: ExploreScreen'den gelen stil (${widget.initialBaseStyle}) listede bulunamadı.");
+        }}
+
+        _currentThemeIndex = themeManager.selectedThemeIndex ?? 0;
+        final currentThemeType = ThemeConfig.getThemeTypeByIndex(_currentThemeIndex);
+        _selectedBaseStyle = ThemeConfig.getBaseStyle(currentThemeType);
+        _selectedSize = ThemeConfig.getThemeSize(currentThemeType);
+
+        // Güvenlik kontrolü: Mevcut stil listede yoksa varsayılana dön
+        if (!baseThemes.any((theme) => theme.type == _selectedBaseStyle)) {
+          if (kDebugMode) print("Uyarı: Mevcut stil ($_selectedBaseStyle) listede bulunamadı, varsayılana dönülüyor.");
+          _selectedBaseStyle = baseThemes.isNotEmpty ? baseThemes.first.type : NotebookThemeType.defaultLightMedium; // Fallback ekle
+          _selectedSize = ThemeSize.medium;
+          _updateTheme(); // Varsayılanı uygula
+        }
+      }
+    } catch(e,s) {
+      // Genel hata durumu: Tamamen varsayılanlara dön
+      if (kDebugMode) {
+        print("SettingsThemeScreen state başlatılırken HATA: $e");
+        print(s);
+      }
+      _selectedBaseStyle = baseThemes.isNotEmpty ? baseThemes.first.type : NotebookThemeType.defaultLightMedium;
+      _selectedSize = ThemeSize.medium;
+      _currentThemeIndex = 0; // Veya varsayılan index
+      // Hata olsa bile temayı uygulamayı deneyebiliriz
+      WidgetsBinding.instance.addPostFrameCallback((_) => _updateTheme());
     }
   }
 
-  /// Seçilen stil ve boyuta göre temayı günceller
+  /// Seçilen stil ve boyuta göre temayı bulur ve uygular.
   void _updateTheme() {
-    // Yeni ThemeConfig helper'larını kullan
+    // Seçili stil ve boyuta karşılık gelen tam tema index'ini bul
     final newIndex = ThemeConfig.findThemeIndexByStyleAndSize(
         _selectedBaseStyle, _selectedSize);
-    if (newIndex != -1 && newIndex != _currentThemeIndex) {
-      getThemeManager(context).selectThemeAtIndex(newIndex);
-      if (mounted) {
-        setState(() {
-          _currentThemeIndex = newIndex;
-        });
+
+    // Geçerli bir index bulunduysa
+    if (newIndex != -1) {
+      final themeManager = getThemeManager(context);
+      final currentAppliedIndex = themeManager.selectedThemeIndex ?? 0;
+      // Sadece mevcut temadan farklıysa yeni temayı uygula
+      if (newIndex != currentAppliedIndex) {
+        themeManager.selectThemeAtIndex(newIndex);
+        if (mounted) {
+          // State'deki index'i de güncelle (UI tutarlılığı için)
+          setState(() => _currentThemeIndex = newIndex);
+        }
+        if (kDebugMode) print("Tema güncellendi: Index=$newIndex, Style=$_selectedBaseStyle, Size=$_selectedSize");
       }
+    } else {
+      // Index bulunamazsa (ThemeConfig hatası olabilir)
+      if (kDebugMode) print("Uyarı: _updateTheme içinde tema index'i bulunamadı! Style=$_selectedBaseStyle, Size=$_selectedSize");
+      // Kullanıcıya hata mesajı gösterilebilir
+      // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Seçilen tema kombinasyonu bulunamadı.")));
     }
   }
 
-  /// Belirtilen sayfaya animasyonla gider
+  /// PageView'ı belirtilen index'e (baseThemes listesindeki) animasyonla kaydırır.
   void _animateToPage(int pageIndex) {
     if (_pageController.hasClients && pageIndex >= 0 && pageIndex < baseThemes.length) {
-      _pageController.animateToPage(
-        pageIndex,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+      _pageController.animateToPage(pageIndex, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut,);
     }
   }
 
-  /// Tema tipi enum'ından okunabilir bir isim döndürür
-  String _getBaseStyleName(NotebookThemeType type) {
-    String typeName = type.toString().split('.').last;
-    if (typeName.contains('Light')) return "Aydınlık";
-    if (typeName.contains('Dark')) return "Altın Vurgu";
-    if (typeName.contains('Leather')) return "Deri";
-    if (typeName.contains('Antique')) return "Antika";
-    if (typeName.contains('Blueprint')) return "Mimari";
-    if (typeName.contains('Scrapbook')) return "Karalama";
-    if (typeName.contains('Japanese')) return "Minimalist";
-    if (typeName.contains('Watercolor')) return "Suluboya";
-    return typeName.replaceAll('Medium', ''); // Genel fallback
+  /// PageView'ı o an seçili olan `_selectedBaseStyle`'a kaydırır.
+  void _scrollToSelectedStyle() {
+    final targetIndex = baseThemes.indexWhere((theme) => theme.type == _selectedBaseStyle);
+    if (targetIndex != -1) {
+      _animateToPage(targetIndex);
+    }
   }
 
-  //--------------------------------------------------------------------------
-  // Build Method
-  //--------------------------------------------------------------------------
+  /// Tema tipinden (enum) okunabilir bir stil adı (String) döndürür.
+  String _getBaseStyleName(NotebookThemeType type) {
+    // ... (Öncekiyle aynı) ...
+    String typeName = type.toString().split('.').last; typeName = typeName.replaceAll('Small', '').replaceAll('Medium', '').replaceAll('Large', ''); switch (typeName) { case 'defaultLight': return "Aydınlık"; case 'defaultDark': return "Altın Vurgu"; case 'classicLeather': return "Deri"; case 'antique': return "Antika"; case 'blueprint': return "Mimari"; case 'scrapbook': return "Karalama"; case 'japanese': return "Minimalist"; case 'watercolor': return "Suluboya"; default: return typeName; }
+  }
+
+  // --- Ana Build Metodu ---
   @override
   Widget build(BuildContext context) {
-    final AppThemeData currentAppTheme =
-    ThemeConfig.getAppThemeDataByIndex(_currentThemeIndex);
-    final Color primaryColor =
-        currentAppTheme.materialTheme.colorScheme.primary;
-    final TextStyle titleStyle =
-        Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: primaryColor,
-          fontWeight: FontWeight.bold,
-        ) ??
-            const TextStyle();
+    // Yükleme veya hata durumu
+    if (_isLoading || baseThemes.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
+    }
+
+    // Mevcut tema verileri
+    final AppThemeData currentAppliedTheme = ThemeConfig.getAppThemeDataByIndex(_currentThemeIndex);
+    final Color primaryColor = currentAppliedTheme.materialTheme.colorScheme.primary;
+    final TextStyle titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(color: primaryColor, fontWeight: FontWeight.bold,) ?? const TextStyle();
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return ThemedBackground( // !!! ThemedBackground import yolunu KESİN KONTROL EDİN !!!
+    // Ana Scaffold
+    return ThemedBackground( // Arka plan
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SafeArea(
+        appBar: AppBar( // AppBar
+          title: const Text("Görünüm Ayarları"),
+          centerTitle: true, elevation: 0, backgroundColor: Colors.transparent,
+          leading: BackButton(onPressed: () => Navigator.pop(context)), // Geri butonu
+        ),
+        body: SafeArea( // Sistem UI çakışmalarını önle
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: SingleChildScrollView(
+            child: SingleChildScrollView( // İçerik taşarsa kaydırılabilir yap
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch, // Öğeleri genişlet
                 children: [
-                  const SizedBox(height: 24),
-                  _buildHeader(titleStyle), // Başlık
+                  const SizedBox(height: 16),
+                  _buildHeader(titleStyle), // "Tema Stili" başlığı
                   const SizedBox(height: 8),
-                  _buildThemeSelector(context, screenWidth), // Tema Seçici
+                  _buildThemeSelector(context, screenWidth), // Yatay stil seçici (PageView)
                   const SizedBox(height: 16),
-                  _buildSeeAllButton(context, primaryColor), // Tümünü Gör
+                  _buildSeeAllButton(context, primaryColor), // "Tüm Temaları Gör" butonu
+                  const SizedBox(height: 24),
+                  Center(child: Text('Yazı Tipi Boyutu', style: titleStyle)), // "Yazı Tipi Boyutu" başlığı
                   const SizedBox(height: 16),
-                  _buildSizeSelectorSection(context, currentAppTheme), // Boyut Seçici
-                  const SizedBox(height: 16),
-                  _buildPreviewSection(context, titleStyle), // Önizleme
+                  _buildSizeSelectorSection(context, currentAppliedTheme), // Boyut seçici (SegmentedButton)
+                  const SizedBox(height: 24),
+                  _buildPreviewSection(context, titleStyle), // "Önizleme" başlığı ve alanı
                   const SizedBox(height: 16),
                 ],
               ),
@@ -483,25 +540,37 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
     );
   }
 
-  /// Bölüm 3: Ortalanmış "Tümünü Gör" Butonunu Oluşturur
   Widget _buildSeeAllButton(BuildContext context, Color primaryColor) {
     return Center(
       child: OutlinedButton.icon(
         icon: const Icon(Icons.collections_bookmark_outlined, size: 18),
         label: const Text('Tüm Temaları Gör'),
-        onPressed: () {
+        // ***** DEĞİŞİKLİK BURADA BAŞLIYOR *****
+        onPressed: () async { // Fonksiyonu async yap
+          // ExploreScreen'e git ve geri dönecek sonucu bekle (NotebookThemeType?)
+          final selectedStyleResult = await Navigator.push<NotebookThemeType?>(
+            context,
+            MaterialPageRoute(builder: (_) => const ExploreScreen()),
+          );
 
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreScreen()));
-
-
+          // Geri dönüldüğünde ve bir sonuç varsa (kullanıcı bir stil seçtiyse)
+          if (selectedStyleResult != null && mounted) {
+            if (kDebugMode) { print("ExploreScreen'den seçilen stil: $selectedStyleResult"); }
+            // SettingsThemeScreen'in state'ini güncelle
+            setState(() {
+              // Seçilen temel stili (_selectedBaseStyle) güncelle
+              _selectedBaseStyle = selectedStyleResult;
+            });
+            // Yeni seçilen stil ve mevcut boyut (_selectedSize) ile temayı uygula
+            _updateTheme(); // Temayı güncelleyen metodu çağır
+          }
+          // ***** DEĞİŞİKLİK BURADA BİTİYOR *****
         },
-        style: OutlinedButton.styleFrom(
+        style: OutlinedButton.styleFrom( /* ... mevcut stil ayarları ... */
           foregroundColor: primaryColor,
           side: BorderSide(color: primaryColor.withOpacity(0.5)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(20),),
         ),
       ),
     );

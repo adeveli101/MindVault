@@ -4,13 +4,15 @@ class Assets {
 
   static const String antiqueAntiquePage1 = 'assets/pages/antique/antique_page1.jpg';
   static const String architecturalBlueprintStyleArcBlueprintPage1 = 'assets/pages/architectural_blueprint_style/arc_blueprint_page1.jpg';
-  static const String assetsImg = 'assets/logo1.png';
+  static const String assetsLogo1 = 'assets/logo1.png';
   static const String darkDarkPage = 'assets/pages/dark/dark_page.jpg';
   static const String digitalScrapbookingScrapbookPage1 = 'assets/pages/digital_scrapbooking/scrapbook_page1.jpg';
   static const String japanaseMinimalistJpnMinimalistPage1 = 'assets/pages/japanase_minimalist/jpn_minimalist_page1.jpg';
   static const String leatherLeatherPage1 = 'assets/pages/leather/leather_page1.jpg';
   static const String lightLightPage = 'assets/pages/light/light_page.jpg';
   static const String lightLightPage1 = 'assets/pages/light/light_page1.jpg';
+  static const String mindVaultAssetsLogo1 = 'assets/logo1.png';
+  static const String screenshotsScreenshot20250506184623 = 'assets/screenshots/Screenshot_20250506_184623.png';
   static const String watercolorWatercolorPage1 = 'assets/pages/watercolor/watercolor_page1.jpg';
 
 }
