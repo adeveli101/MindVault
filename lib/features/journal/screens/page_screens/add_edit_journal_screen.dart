@@ -450,8 +450,9 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                                   Icon(
                                       Icons.post_add_rounded ), iconSize: 28,
                                   tooltip: 'Yeni Sayfa Ekle',
-                                  color: colorScheme.onPrimaryFixed,
-                                  padding: const EdgeInsets.all(10.0), constraints: const BoxConstraints())),
+                                  color: colorScheme.inverseSurface.withOpacity(0.7),
+                                  padding: const EdgeInsets.all(10.0),
+                                  constraints: const BoxConstraints())),
                           const Spacer(),
                           // Orta: Kaydet Butonu
                           ElevatedButton.icon(

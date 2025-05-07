@@ -45,7 +45,7 @@ class _FilterSheetState extends State<FilterSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ruh Haline Göre Filtrele', style: textTheme.titleLarge),
+              Text('Ruh Haline Göre Filtrele', style: textTheme.titleMedium),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context), // Değişiklik yapmadan kapat
