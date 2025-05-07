@@ -1,11 +1,14 @@
-// lib/features/journal/screens/home/home_screen.dart (Eski Tasarıma Yakın, Geliştirilmiş)
-// Değişiklikler: TextButton kaldırıldı, sadece ikon kullanıldı, sağ üste yeniden konumlandırıldı (3:4 oranlı boşluk).
+// lib/features/journal/screens/home/home_screen.dart (Abonelik Butonu Eklendi)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // BlocBuilder için eklendi
 import 'package:intl/intl.dart';
-import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart'; // Tarih formatlama için
 
-
+// Kendi proje yollarınızı kontrol edin!
+import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
+// Abonelikle ilgili importlar - KENDİ YOLUNUZU KULLANIN!
+import 'package:mindvault/features/journal/subscription/subscription_bloc.dart'; // VEYA features/subscription/bloc/...
+import 'package:mindvault/features/journal/subscription/subscription_screen.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -13,38 +16,30 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mevcut temayı ve renkleri al (ThemeConfig ile yapılandırıldığı varsayılır)
+    // Mevcut temayı ve renkleri al
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
     // Görüntülenecek tarih
     final now = DateTime.now();
-    // Türkçe format için intl paketi kullanılır (main.dart'ta initializeDateFormatting yapılmalı)
-    final formattedDate = DateFormat('dd MMMM yyyy, EEEE' , 'tr_TR').format(now);
+    final formattedDate = DateFormat('dd MMMM yyyy, EEEE', 'tr_TR').format(now); // Yıl eklendi
 
-    // MainScreen zaten ThemedBackground ve Scaffold sağlıyor.
-    // Biz sadece Scaffold'un body'si için içeriği döndüreceğiz.
-    // Ortalanmış içerik ve sabit alt/üst elemanlar için Stack kullanıyoruz.
     return Stack(
       children: [
-        // 1. Ortalanmış Ana İçerik
+        // 1. Ortalanmış Ana İçerik (Değişiklik Yok)
         Center(
           child: Padding(
-            // Kenarlardan biraz boşluk bırak, ikon ve alt yazı için dikey boşluk ayarla
-            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 80.0), // Dikey padding korunuyor
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 80.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, // Dikeyde ortala
-              crossAxisAlignment: CrossAxisAlignment.center, // Yatayda ortala
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Uygulama İkonu
                 Icon(
-                  Icons.auto_stories_rounded, // Dolgun ikon
+                  Icons.auto_stories_rounded,
                   size: 70,
-                  color: colorScheme.primary.withOpacity(0.9), // Primary renk, hafif opaklık
+                  color: colorScheme.primary.withOpacity(0.9),
                 ),
-
-                // Uygulama Adı
                 Text(
                   'Mind Vault',
                   style: textTheme.headlineLarge?.copyWith(
@@ -54,8 +49,6 @@ class HomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
-
-                // Günün Tarihi
                 Text(
                   formattedDate,
                   style: textTheme.titleMedium?.copyWith(
@@ -64,8 +57,6 @@ class HomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 85),
-
-                // İlham Verici Söz veya Yazma İstemi
                 Text(
                   '"Düşünceleriniz sizin özel alanınızdır."',
                   style: textTheme.bodyLarge?.copyWith(
@@ -80,26 +71,19 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
 
-        // 2. "Why Mind Vault?" İkonu (Sağ Üst, 3:4 Oranlı Uzaklık)
+        // 2. "Why Mind Vault?" İkonu (Sağ Üst - Değişiklik Yok)
         Positioned(
-          // ****** DEĞİŞİKLİK: Konum güncellendi (3:4 oranlı boşluk) ******
-          top: 35.0,  // Üstten 3 birim (örnek değer)
-          right: 30.0, // Sağdan 4 birim (örnek değer)
-          // left: null, // left kaldırıldı
-          child: IconButton( // TextButton yerine IconButton
+          top: 35.0,
+          right: 30.0,
+          child: IconButton(
             icon: Icon(
-              // ****** DEĞİŞİKLİK: Kalın/Belirgin ikon, renk ve opaklık isteğe göre ******
-              Icons.info_outline, // veya Icons.security_rounded, Icons.help_rounded
-              color: colorScheme.primary.withOpacity(0.8), // Primary olmayan, opak bir renk (örn: secondary)
-              size: 31//Belirgin boyut
+                Icons.info_outline,
+                color: colorScheme.primary.withOpacity(0.8),
+                size: 31
             ),
-            tooltip: 'Neden Mind Vault?', // Tıklandığında veya üzerine gelindiğinde görünen yazı
-            // IconButton'un etrafında varsayılan olarak bir miktar boşluk bulunur (hitbox için)
-            // padding: EdgeInsets.zero, // Gerekirse iç boşluğu sıfırla
-            constraints: const BoxConstraints(), // Gerekirse boyut kısıtlamalarını kaldır
+            tooltip: 'Neden Mind Vault?',
+            constraints: const BoxConstraints(),
             onPressed: () {
-              // OnboardingScreen'e yönlendirme
-              // Kendi OnboardingScreen importunuzu ve yönlendirmenizi ekleyin
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -108,7 +92,85 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
 
-        // 3. En Alt Ortadaki Gizlilik Bilgisi Metni (Konumu aynı)
+        // 3. YENİ: Abonelik Durum Göstergesi/Butonu (Sol Üst - ActionChip)
+        Positioned(
+          top: 35.0, // Bilgi butonuyla aynı hizada veya isteğe göre ayarlayın
+          left: 30.0,  // Sol kenardan boşluk
+          child: BlocBuilder<SubscriptionBloc, SubscriptionState>(
+            builder: (context, state) {
+              bool isSubscribed = false;
+              bool isLoading = false;
+              IconData iconData = Icons.workspace_premium_outlined;
+              String labelText = 'Freemium'; // Freemium için metin
+              String tooltipText = "Premium'a Yükselt";
+              Color chipBackgroundColor = colorScheme.secondaryContainer.withOpacity(0.8); // Freemium arka plan
+              Color contentColor = colorScheme.onSecondaryContainer; // Freemium içerik rengi
+              BorderSide? borderSide = BorderSide(color: colorScheme.secondary.withOpacity(0.6)); // Freemium kenarlık
+
+              if (state is SubscriptionLoaded) {
+                isSubscribed = state.isSubscribed;
+                if (isSubscribed) {
+                  iconData = Icons.workspace_premium_rounded;
+                  labelText = 'Premium'; // Premium için metin
+                  tooltipText = "Premium Üye";
+                  chipBackgroundColor = Colors.amber.shade700.withOpacity(0.9); // Premium arka plan (altın)
+                  contentColor = Colors.white; // Premium içerik rengi
+                  borderSide = null; // Premium için kenarlık yok
+                }
+              } else if (state is SubscriptionLoading || state is SubscriptionInitial) {
+                isLoading = true;
+              }
+              // SubscriptionError durumu için de Freemium görünümü kalabilir veya farklı bir stil uygulanabilir.
+
+              // Yükleniyorsa küçük bir gösterge
+              if (isLoading) {
+                return Padding(
+                  padding: const EdgeInsets.all(12.0), // Chip padding'ine benzer
+                  child: SizedBox(
+                      width: 16, // Küçük boyut
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: colorScheme.secondary,
+                      )
+                  ),
+                );
+              }
+
+              // Yüklenmiyorsa ActionChip'i döndür
+              return Tooltip( // ActionChip'in kendi tooltip'i bazen yetersiz kalabilir
+                message: tooltipText,
+                child: ActionChip(
+                  avatar: Icon(
+                    iconData,
+                    color: contentColor, // İkon rengi
+                    size: 18,
+                  ),
+                  label: Text(
+                    labelText,
+                    style: TextStyle(
+                        color: contentColor, // Metin rengi
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13 // Biraz küçültebiliriz
+                    ),
+                  ),
+                  onPressed: () {
+                    // Her durumda sheet'i açalım
+                    showSubscriptionSheet(context);
+                  },
+                  backgroundColor: chipBackgroundColor,
+                  side: borderSide,
+                  elevation: isSubscribed ? 3 : 1, // Premium ise hafif gölge
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // İç boşluklar
+                  shape: StadiumBorder(), // Yuvarlak kenarlı
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 4. En Alt Ortadaki Gizlilik Bilgisi Metni (Varsa)
+        // Eğer varsa, bu Positioned widget burada kalabilir.
       ],
     );
   }

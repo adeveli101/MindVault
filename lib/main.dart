@@ -11,6 +11,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 // Eski paketle devam ediyorsanız:
 import 'package:intl/date_symbol_data_local.dart'; // Tarih formatlama için
 import 'package:mindvault/features/journal/notifications/notification_service.dart';
+import 'package:mindvault/features/journal/subscription/subscription_bloc.dart';
+import 'package:mindvault/features/journal/subscription/subscription_service.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Kayıtlı tercihler için
 import 'package:stacked_themes/stacked_themes.dart'; // Tema yönetimi için
 
@@ -130,6 +132,9 @@ Future<void> main() async {
           RepositoryProvider<NotificationService>(
             create: (_) => NotificationService(), // NotificationService nesnesi oluşturulup sağlanıyor
           ),
+           RepositoryProvider<SubscriptionService>(
+      create: (context) => SubscriptionService(prefs),
+    ),
           // ***************************************************
         ],
         child: MultiBlocProvider(
@@ -147,11 +152,18 @@ Future<void> main() async {
               ),
               lazy: false, // AuthBloc hemen başlasın
             ),
-          ],
-          child: MyApp(showOnboarding: !onboardingComplete),
-        ),
+
+            BlocProvider<SubscriptionBloc>(
+              create: (context) => SubscriptionBloc(
+                // SubscriptionService'i RepositoryProvider'dan okuyun
+                context.read<SubscriptionService>(),
+              )..add(LoadSubscriptionStatus()), // Başlangıçta abonelik durumunu yükle
+            ),
+            ],
+            child: MyApp(showOnboarding: !onboardingComplete),
       ),
-    );
+    ),
+  );
   } catch (error, stackTrace) {
     // Genel Başlatma Hatası
     if (kDebugMode) {
