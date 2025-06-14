@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 // main.dart içinde tanımladığımız global plugin nesnesine erişim için
 // Projenizin dosya yapısına göre bu yolun doğru olduğundan emin olun:
 import 'package:mindvault/main.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 /// Android'de yerel bildirimleri yönetmek için servis sınıfı.
 ///
@@ -104,21 +105,22 @@ class NotificationService {
 
   /// Her gün belirtilen saatte tekrarlayan günlük hatırlatıcıyı planlar.
   /// Varsa, önceki aynı ID'li hatırlatıcıyı iptal eder.
-  Future<void> scheduleDailyReminder(TimeOfDay reminderTime) async {
+  Future<void> scheduleDailyReminder(TimeOfDay reminderTime, BuildContext context) async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(reminderTime);
 
       await _plugin.zonedSchedule(
-        dailyReminderId, // Sabit ID
-        'Mind Vault Hatırlatıcısı', // Başlık
-        'Günlük yazma zamanı! Bugün zihninde neler var?', // İçerik
+        dailyReminderId,
+        l10n.notificationTitle,
+        l10n.notificationBody,
         scheduledDate,
-        const NotificationDetails(android: _dailyReminderDetails), // Stil
-        payload: 'action_open_add_entry', // Tıklama eylemi için payload
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Tam zamanlama
+        const NotificationDetails(android: _dailyReminderDetails),
+        payload: 'action_open_add_entry',
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // Her gün aynı saatte tekrarla
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
       );
 
       if (kDebugMode) {
@@ -134,21 +136,21 @@ class NotificationService {
 
   /// Belirtilen süre geçtikten sonra gösterilecek tek seferlik inaktivite hatırlatıcısını planlar.
   /// Varsa, önceki aynı ID'li hatırlatıcıyı iptal eder.
-  Future<void> scheduleInactivityReminder(Duration afterDuration) async {
+  Future<void> scheduleInactivityReminder(Duration afterDuration, BuildContext context) async {
     try {
+      final l10n = AppLocalizations.of(context)!;
       final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(afterDuration);
 
       await _plugin.zonedSchedule(
-        inactivityReminderId, // Sabit ID
-        "Mind Vault'u Özledik!",
-        "Bir süredir seni görmedik. İçini dökmek için bir an ayırmak ister misin?",
+        inactivityReminderId,
+        l10n.notificationMissedTitle,
+        l10n.notificationMissedBody,
         scheduledDate,
-        const NotificationDetails(android: _inactivityReminderDetails), // Farklı stil/kanal
-        payload: 'action_open_app', // Tıklama eylemi için payload
+        const NotificationDetails(android: _inactivityReminderDetails),
+        payload: 'action_open_app',
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
-        // matchDateTimeComponents belirtilmediği için tekrarlamaz
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
 
       if (kDebugMode) {

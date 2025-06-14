@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mindvault/features/journal/bloc_auth/auth_bloc.dart';
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
 import 'package:pinput/pinput.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PinSetupScreen extends StatefulWidget {
   final bool isChangePin;
@@ -150,8 +151,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
-    final String title = widget.isChangePin ? 'PIN Değiştir' : 'PIN Oluştur';
-    final String buttonText = widget.isChangePin ? 'Değiştir' : 'Oluştur';
+    final l10n = AppLocalizations.of(context)!;
+    final String title = widget.isChangePin ? l10n.changePinTitle : l10n.createPin;
+    final String buttonText = widget.isChangePin ? l10n.changePin : l10n.createPin;
 
     if (defaultPinTheme == null) _setupPinThemes(context);
 
@@ -165,17 +167,26 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         ),
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (mounted) { // state güncellemeleri için mounted kontrolü
+            if (mounted) {
               setState(() { _isLoading = state is AuthInProgress; });
 
               if (state is AuthLocked) {
                 if (kDebugMode) { print("PinSetupScreen: Received AuthLocked state (PIN set/changed successfully). Popping screen."); }
                 if (Navigator.canPop(context)) Navigator.pop(context);
-                ScaffoldMessenger.maybeOf(context)?.showSnackBar( SnackBar( content: Text('PIN başarıyla ${widget.isChangePin ? "değiştirildi" : "oluşturuldu"}!'), backgroundColor: Colors.green[700]));
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar( 
+                  SnackBar( 
+                    content: Text(widget.isChangePin ? l10n.pinSuccessfullyChanged : l10n.pinSuccessfullySet),
+                    backgroundColor: Colors.green[700]
+                  )
+                );
               } else if (state is AuthFailure) {
                 if (kDebugMode) { print("PinSetupScreen: Received AuthFailure state: ${state.message}"); }
-                ScaffoldMessenger.maybeOf(context)?.showSnackBar( SnackBar( content: Text("PIN ayarlanamadı: ${state.message}"), backgroundColor: colorScheme.error));
-                // Başarısız olursa inputları temizle ve ilkine odaklan
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar( 
+                  SnackBar( 
+                    content: Text(l10n.pinCouldNotBeSet(state.message)),
+                    backgroundColor: colorScheme.error
+                  )
+                );
                 _pinController.clear();
                 _confirmPinController.clear();
                 _pinFocusNode.requestFocus();
@@ -184,19 +195,22 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           },
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0), // Yatay padding azaltıldı
-              child: Form( // Form widget'ı hala kullanılabilir, ancak validasyonu manuel yapıyoruz
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon( Icons.pin_rounded, size: 45, color: colorScheme.primary), // Boyut ayarlandı
+                    Icon( Icons.pin_rounded, size: 45, color: colorScheme.primary),
                     const SizedBox(height: 14),
-                    Text( widget.isChangePin ? 'Yeni 6 haneli PIN kodunuzu girin.' : 'Uygulamayı korumak için 6 haneli bir PIN oluşturun.', textAlign: TextAlign.center, style: textTheme.titleMedium),
-                    const SizedBox(height: 28), // Boşluk ayarlandı
+                    Text( 
+                      widget.isChangePin ? l10n.changePinDescription : l10n.createPinDescription,
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleMedium
+                    ),
+                    const SizedBox(height: 28),
 
-                    // --- Yeni PIN ---
                     Pinput(
                       controller: _pinController,
                       focusNode: _pinFocusNode,
@@ -205,17 +219,15 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       defaultPinTheme: defaultPinTheme ?? const PinTheme(),
                       focusedPinTheme: focusedPinTheme,
-                      submittedPinTheme: submittedPinTheme, // Focus gidince normal tema
-                      errorPinTheme: errorPinTheme, // Hata durumunda
+                      submittedPinTheme: submittedPinTheme,
+                      errorPinTheme: errorPinTheme,
                       pinAnimationType: PinAnimationType.fade,
-                      onChanged: _onPinChanged, // Otomatik focus için
-                      // Validator yerine manuel kontrol
-                      errorTextStyle: const TextStyle(fontSize: 0, height: 0), // Hata metnini Pinput altında gösterme
-                      forceErrorState: _pinController.text.isNotEmpty && _pinController.text.length != 6, // Submit sonrası eksikse hata göster
+                      onChanged: _onPinChanged,
+                      errorTextStyle: const TextStyle(fontSize: 0, height: 0),
+                      forceErrorState: _pinController.text.isNotEmpty && _pinController.text.length != 6,
                     ),
-                    const SizedBox(height: 20), // Boşluk ayarlandı
+                    const SizedBox(height: 20),
 
-                    // --- PIN Tekrar ---
                     Pinput(
                       controller: _confirmPinController,
                       focusNode: _confirmPinFocusNode,
@@ -224,37 +236,34 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       defaultPinTheme: defaultPinTheme ?? const PinTheme(),
                       focusedPinTheme: focusedPinTheme,
-                      submittedPinTheme: submittedPinTheme, // Focus gidince normal tema
-                      errorPinTheme: errorPinTheme, // Hata durumunda
+                      submittedPinTheme: submittedPinTheme,
+                      errorPinTheme: errorPinTheme,
                       pinAnimationType: PinAnimationType.fade,
-                      onCompleted: _onConfirmPinCompleted, // Tamamlanınca submit etmeyi dene
-                      // Validator yerine state'deki hata mesajı kullanılacak
+                      onCompleted: _onConfirmPinCompleted,
                       errorTextStyle: const TextStyle(fontSize: 0, height: 0),
-                      forceErrorState: _confirmPinErrorText != null || (_confirmPinController.text.isNotEmpty && _confirmPinController.text.length != 6), // Eşleşme hatası veya eksik girme durumu
+                      forceErrorState: _confirmPinErrorText != null || (_confirmPinController.text.isNotEmpty && _confirmPinController.text.length != 6),
                     ),
-                    // Hata Mesajı Alanı
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      height: _confirmPinErrorText != null ? 20 : 18, // Hata varsa yükseklik ver, yoksa boşluk
+                      height: _confirmPinErrorText != null ? 20 : 18,
                       alignment: Alignment.center,
                       child: _confirmPinErrorText != null
-                          ? Text( _confirmPinErrorText!, style: textTheme.bodySmall?.copyWith(color: colorScheme.error),)
+                          ? Text( l10n.pinsDoNotMatch, style: textTheme.bodySmall?.copyWith(color: colorScheme.error),)
                           : null,
                     ),
 
-                    const SizedBox(height: 20), // Butonla hata mesajı arası boşluk
+                    const SizedBox(height: 20),
 
-                    // Kaydet Butonu
                     ElevatedButton(
                       onPressed: _isLoading ? null : _submitPin,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14), // Dikey padding ayarlandı
-                        shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(10)), // Köşe yuvarlaklığı
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(10)),
                         backgroundColor: colorScheme.primary,
                         foregroundColor: colorScheme.onPrimary,
                       ),
                       child: _isLoading
-                          ? SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: colorScheme.onPrimary)) // Boyut ayarlandı
+                          ? SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: colorScheme.onPrimary))
                           : Text(buttonText, style: textTheme.titleMedium?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
                     ),
                   ],

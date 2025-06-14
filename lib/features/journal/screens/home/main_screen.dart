@@ -10,6 +10,7 @@ import 'package:mindvault/features/journal/screens/home/home_screen.dart';
 import 'package:mindvault/features/journal/screens/settings/settings_screen.dart'; // SettingsHostScreen'i içerdiği varsayılıyor
 import 'package:mindvault/features/journal/screens/page_screens/add_edit_journal_screen.dart';
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 // =====================================================================
 
 class MainScreen extends StatefulWidget {
@@ -76,6 +77,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final double horizontalPadding = screenWidth * 0.05; // Yan boşluklar %5
 
@@ -102,7 +104,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       backgroundColor: Colors.transparent, // Veya temanıza uygun renk
       elevation: 0,
       title: Text(
-        'Kayıtlar', // Veya 'Takvim' gibi daha uygun bir başlık
+        l10n.calendar,
         style: TextStyle(color: colorScheme.onSurface),
       ),
       centerTitle: true,
@@ -119,9 +121,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         unselectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.normal,
         ),
-        tabs: const <Widget>[
-          Tab(text: 'Liste'),
-          Tab(text: 'Takvim'),
+        tabs: <Widget>[
+          Tab(text: l10n.calendarList),
+          Tab(text: l10n.calendarView),
         ],
       ),
     )
@@ -149,7 +151,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ),
 
             // Özel Alt Navigasyon Çubuğu
-            _buildCustomBottomNav(context, horizontalPadding, textTheme, colorScheme),
+            _buildCustomBottomNav(context, horizontalPadding, textTheme, colorScheme, l10n),
 
             // Floating Action Button (Koşullu ve Ortalanmış)
             // FAB sadece ilk sayfada (Home - index 0) görünür
@@ -164,7 +166,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       MaterialPageRoute(builder: (_) => const AddEditJournalScreen()),
                     );
                   },
-                  tooltip: 'Yeni Günlük Girişi',
+                  tooltip: l10n.newJournalEntry,
                   elevation: 4.0,
                   child: const Icon(Icons.add_rounded),
                 ),
@@ -177,7 +179,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
 
   // --- Özel Alt Navigasyon Çubuğu Oluşturucu ---
-  Widget _buildCustomBottomNav(BuildContext context, double horizontalPadding, TextTheme textTheme, ColorScheme colorScheme) {
+  Widget _buildCustomBottomNav(
+    BuildContext context,
+    double horizontalPadding,
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+    AppLocalizations l10n,
+  ) {
     return Positioned(
       bottom: kBottomNavBottomMargin,
       left: horizontalPadding,
@@ -205,11 +213,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             children: <Widget>[
               // *** DEĞİŞİKLİK: Index'ler widgetOptions listesindeki sıraya göre güncellendi ***
               _buildNavItem(context, Icons.notes_rounded,
-                  Icons.notes_outlined, 'Ana Sayfa',
+                  Icons.notes_outlined, l10n.home,
                   0, textTheme, colorScheme), // Index 0 -> HomeScreen
-              _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Takvim', 1, textTheme, colorScheme), // Index 1 -> CalendarPage <--- DÜZELTİLDİ
-              _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, 'Keşfet', 2, textTheme, colorScheme), // Index 2 -> ExploreScreen <--- DÜZELTİLDİ
-              _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, 'Ayarlar', 3, textTheme, colorScheme), // Index 3 -> SettingsHostScreen
+              _buildNavItem(context, Icons.calendar_month_rounded, Icons.calendar_month_outlined, l10n.calendar, 1, textTheme, colorScheme), // Index 1 -> CalendarPage <--- DÜZELTİLDİ
+              _buildNavItem(context, Icons.search_rounded, Icons.search_outlined, l10n.explore, 2, textTheme, colorScheme), // Index 2 -> ExploreScreen <--- DÜZELTİLDİ
+              _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, l10n.settings, 3, textTheme, colorScheme), // Index 3 -> SettingsHostScreen
             ],
           ),
         ),

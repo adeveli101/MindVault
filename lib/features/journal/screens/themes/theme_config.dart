@@ -51,18 +51,64 @@ class ThemeConfig {
 
   // === UI YARDIMCI FONKSİYONLARI (DOLDURULDU) ===
 
+  // UI'da gösterilecek temaları kullanıcının premium durumuna göre döndürür
+  static List<AppThemeData> getAvailableThemes(bool isPremium) {
+    final allThemes = getBaseThemeRepresentations();
+    if (isPremium) {
+      return allThemes; // Premium kullanıcılar tüm temalara erişebilir
+    } else {
+      return allThemes.where((theme) => theme.isFree).toList(); // Freemium kullanıcılar sadece ücretsiz temalara erişebilir
+    }
+  }
+
+  // Tema seçimini kontrol eder ve uygular
+  static bool canApplyTheme(AppThemeData theme, bool isPremium) {
+    if (theme.isFree) return true; // Ücretsiz temalar her zaman uygulanabilir
+    return isPremium; // Premium temalar sadece premium kullanıcılara uygulanabilir
+  }
+
+  // Tema tipinden (enum) okunabilir bir stil adı (String) döndürür
+  static String getThemeDisplayName(NotebookThemeType type) {
+    String typeName = type.toString().split('.').last;
+    typeName = typeName
+        .replaceAll('Small', '')
+        .replaceAll('Medium', '')
+        .replaceAll('Large', '');
+
+    switch (typeName) {
+      case 'defaultLight':
+        return "Aydınlık";
+      case 'defaultDark':
+        return "Altın Vurgu";
+      case 'classicLeather':
+        return "Deri";
+      case 'antique':
+        return "Antika";
+      case 'blueprint':
+        return "Mimari";
+      case 'scrapbook':
+        return "Karalama";
+      case 'japanese':
+        return "Minimalist";
+      case 'watercolor':
+        return "Suluboya";
+      default:
+        return typeName;
+    }
+  }
+
   // UI'da gösterilecek temsilci temalar (Orta boyutlular)
   static List<AppThemeData> getBaseThemeRepresentations() {
     // Eğer herhangi bir stil dosyası eksikse veya import edilmemişse burada hata alırsınız.
     return [
-      LightThemeStyle.medium,
-      DarkThemeStyle.medium,
-      LeatherThemeStyle.medium,
-      AntiqueThemeStyle.medium,
-      BlueprintThemeStyle.medium,
-      ScrapbookThemeStyle.medium,
-      JapaneseThemeStyle.medium,
-      WatercolorThemeStyle.medium,
+      LightThemeStyle.medium.copyWith(isFree: true),  // Ücretsiz
+      DarkThemeStyle.medium.copyWith(isFree: true),   // Ücretsiz
+      LeatherThemeStyle.medium.copyWith(isFree: false),  // Premium
+      AntiqueThemeStyle.medium.copyWith(isFree: false),  // Premium
+      BlueprintThemeStyle.medium.copyWith(isFree: false),  // Premium
+      ScrapbookThemeStyle.medium.copyWith(isFree: false),  // Premium
+      JapaneseThemeStyle.medium.copyWith(isFree: false),  // Premium
+      WatercolorThemeStyle.medium.copyWith(isFree: false),  // Premium
     ];
   }
 

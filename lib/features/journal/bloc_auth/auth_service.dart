@@ -7,15 +7,19 @@ import 'package:flutter/services.dart'; // PlatformException için
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:crypto/crypto.dart';
+import 'package:mindvault/features/journal/bloc_auth/rate_limiter.dart';
 
 class AuthService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final LocalAuthentication _localAuth = LocalAuthentication();
+  final RateLimiter _rateLimiter;
 
   // Secure Storage için anahtarlar
   static const _pinHashKey = 'mindvault_pin_hash_v1';
   static const _pinSaltKey = 'mindvault_pin_salt_v1';
   static const _biometricsEnabledKey = 'mindvault_biometrics_enabled_v1';
+
+  AuthService({required RateLimiter rateLimiter}) : _rateLimiter = rateLimiter;
 
   // --- PIN/Şifre Yönetimi ---
 
@@ -56,27 +60,42 @@ class AuthService {
 
   Future<bool> verifyPin(String enteredPin) async {
     try {
+      // Rate limiting kontrolü
+      if (!await _rateLimiter.canAttempt()) {
+        final remainingTime = _rateLimiter.getRemainingLockoutTime();
+        throw Exception('Çok fazla başarısız deneme. Lütfen $remainingTime dakika sonra tekrar deneyin.');
+      }
+
       final salt = await _secureStorage.read(key: _pinSaltKey);
       final storedHash = await _secureStorage.read(key: _pinHashKey);
 
       if (salt == null || storedHash == null) {
         if (kDebugMode) {
           print("AuthService: PIN not set.");
-        } // Debug
-        return false; // PIN belirlenmemiş
+        }
+        return false;
       }
 
       final enteredHash = _hashPin(enteredPin, salt);
       final bool match = enteredHash == storedHash;
+
+      if (match) {
+        // Başarılı girişte deneme sayısını sıfırla
+        await _rateLimiter.resetOnSuccess();
+      } else {
+        // Başarısız denemeyi kaydet
+        await _rateLimiter.recordAttempt();
+      }
+
       if (kDebugMode) {
         print("AuthService: PIN verification result: $match");
-      } // Debug
+      }
       return match;
     } catch (e) {
       if (kDebugMode) {
         print("Error verifying PIN: $e");
       }
-      return false; // Hata durumunda false dön
+      rethrow; // Hatayı yukarı fırlat
     }
   }
 

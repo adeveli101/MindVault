@@ -9,6 +9,7 @@ import 'package:mindvault/features/journal/notifications/notification_service.da
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SettingsNotificationScreen extends StatefulWidget {
   const SettingsNotificationScreen({super.key});
@@ -107,7 +108,7 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
       });
     }
     if (!granted) {
-      _showSnackbar("Hatırlatıcıları kullanmak için bildirim izinleri gereklidir.", isError: true);
+      _showSnackbar(AppLocalizations.of(context)!.notificationPermissionsRequired, isError: true);
     } else {
       if (kDebugMode) print("Bildirim izinleri verildi.");
     }
@@ -132,73 +133,64 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
       if (kDebugMode) print("Ayarlar kaydedildi: Daily=$_dailyReminderEnabled, Time=$_selectedTime, Perm=$_permissionsGranted");
     } catch (e, s) {
       if (kDebugMode) print("Ayarlar kaydedilirken hata: $e\n$s");
-      _showSnackbar("Ayarlar kaydedilirken bir hata oluştu.", isError: true);
+      _showSnackbar(AppLocalizations.of(context)!.settingsSaveError, isError: true);
     }
   }
 
   /// Saat seçiciyi gösterir ve seçilen saati işler.
   Future<void> _pickTime() async {
-    // Sadece izin varsa ve switch açıksa saat seçimine izin ver
     if (!_dailyReminderEnabled || !_permissionsGranted) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
-      helpText: 'Günlük Hatırlatma Saati',
-      builder: (context, child) => Theme(data: Theme.of(context), child: child!), // Basit tema
+      helpText: l10n.dailyReminderTime,
+      builder: (context, child) => Theme(data: Theme.of(context), child: child!),
     );
 
     if (pickedTime != null && pickedTime != _selectedTime) {
       setState(() => _selectedTime = pickedTime);
-      await _saveSettings(); // Yeni saati kaydet
-      await _notificationService.scheduleDailyReminder(pickedTime); // Yeni saatle planla
-      _showSnackbar("Günlük hatırlatma saati ${pickedTime.format(context)} olarak ayarlandı.");
+      await _saveSettings();
+      await _notificationService.scheduleDailyReminder(pickedTime, context);
+      _showSnackbar(l10n.reminderTimeSet(pickedTime.format(context)));
     }
   }
 
   /// Günlük hatırlatıcı Switch durumu değiştiğinde çalışır.
   Future<void> _onDailyReminderEnabledChanged(bool newValue) async {
-    // Yeni değeri state'e ata
     setState(() => _dailyReminderEnabled = newValue);
+    final l10n = AppLocalizations.of(context)!;
 
-    if (newValue) { // AÇILDI
-      // Önce izinleri iste/kontrol et
+    if (newValue) {
       final bool permissionsOk = await _askForPermissions();
       if (!permissionsOk) {
-        // İzin alınamadıysa, switch'i geri kapat (state zaten güncellendi)
         setState(() => _dailyReminderEnabled = false);
-        await _saveSettings(); // Kapalı durumu kaydet
-        return; // İşlemi durdur
+        await _saveSettings();
+        return;
       }
 
-      // İzinler tamam. Saat seçili mi kontrol et.
       if (_selectedTime == null) {
-        _showSnackbar("Lütfen hatırlatma saatini seçin.", isError: false);
-        // Zaman seçiciyi açıp sonucu bekle
+        _showSnackbar(l10n.selectReminderTime);
         await _pickTime();
-        // Eğer kullanıcı saat seçmediyse (iptal ettiyse), switch'i geri kapat ve kaydet
         if(_selectedTime == null && mounted) {
           setState(() => _dailyReminderEnabled = false);
           await _saveSettings();
           return;
         }
-        // Saat seçildiyse _pickTime zaten planlamayı yaptı.
       } else {
-        // İzinler tamam ve saat zaten seçiliyse, direkt planla
-        await _notificationService.scheduleDailyReminder(_selectedTime!);
-        _showSnackbar("Günlük hatırlatıcı ${_selectedTime!.format(context)} için kuruldu.");
+        await _notificationService.scheduleDailyReminder(_selectedTime!, context);
+        _showSnackbar(l10n.reminderEnabledMessage(_selectedTime!.format(context)));
       }
-    } else { // KAPATILDI
+    } else {
       await _notificationService.cancelDailyReminder();
-      _showSnackbar("Günlük hatırlatıcı kapatıldı.");
+      _showSnackbar(l10n.reminderDisabledMessage);
     }
-    // Her durumda yeni switch durumunu (ve potansiyel olarak zamanı) kaydet
     await _saveSettings();
   }
 
   /// Ekranda kullanıcıya geri bildirim göstermek için SnackBar.
   void _showSnackbar(String message, {bool isError = false}) {
-    // ... (önceki kodla aynı) ...
     if (!mounted) return;
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -208,7 +200,8 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
         margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-        action: SnackBarAction( label: 'Kapat',
+        action: SnackBarAction(
+          label: 'Kapat',
           textColor: isError ? Theme.of(context).colorScheme.onErrorContainer : Theme.of(context).colorScheme.onSecondaryContainer,
           onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         ),
@@ -220,18 +213,15 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    // Seçili saati formatla veya "Ayarlanmadı" yaz
-    final String timeDisplay = _selectedTime?.format(context) ?? 'Ayarlanmadı';
-
-    // Saat seçme ListTile'ının tıklanabilir olup olmadığını belirle
-    // Hem izin verilmeli hem de switch açık olmalı
+    final l10n = AppLocalizations.of(context)!;
+    final String timeDisplay = _selectedTime?.format(context) ?? l10n.notSet;
     final bool canSetTime = _dailyReminderEnabled && _permissionsGranted;
 
     return ThemedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Hatırlatıcı Ayarları'), // Başlık güncellendi
+          title: Text(l10n.notificationSettings),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
@@ -244,13 +234,13 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
             // --- Günlük Hatırlatıcı Bölümü ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text("Günlük Yazma Hatırlatıcısı", style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.primary)),
+              child: Text(l10n.dailyReminder, style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.primary)),
             ),
             SwitchListTile(
-              title: const Text('Hatırlatıcıyı Aç'),
+              title: Text(l10n.enableReminder),
               subtitle: Text(_dailyReminderEnabled
-                  ? 'Her gün seçtiğiniz saatte bildirim alacaksınız.'
-                  : 'Bildirimler kapalı.'),
+                  ? l10n.reminderEnabled
+                  : l10n.reminderDisabled),
               value: _dailyReminderEnabled,
               onChanged: _onDailyReminderEnabledChanged, // Yeni mantıkla çalışır
               activeColor: colorScheme.primary,
@@ -269,7 +259,7 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
                   color: canSetTime ? colorScheme.secondary : colorScheme.onSurfaceVariant.withOpacity(0.4),
                 ),
               ),
-              title: const Text('Hatırlatma Saati'),
+              title: Text(l10n.reminderTime),
               subtitle: Text(timeDisplay),
               // Sadece switch açık ve izin varsa tıklanabilir ve renkli göster
               trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: canSetTime ? colorScheme.onSurfaceVariant : colorScheme.onSurfaceVariant.withOpacity(0.4)),
@@ -291,18 +281,18 @@ class _SettingsNotificationScreenState extends State<SettingsNotificationScreen>
               ),
               minLeadingWidth: 10,
               contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
-              title: Text('Bildirim İzinleri', style: theme.textTheme.bodySmall),
+              title: Text(l10n.notificationPermissions, style: theme.textTheme.bodySmall),
               subtitle: Text(
                 _permissionsGranted
-                    ? 'Uygulamanın bildirim gönderme izni var.'
-                    : 'Hatırlatıcıların çalışması için bildirim izinleri gerekli.',
+                    ? l10n.permissionsGranted
+                    : l10n.permissionsRequired,
                 style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant.withOpacity(0.8)),
               ),
               // Eğer izin verilmemişse, izin istemek için bir buton gösterilebilir
               trailing: !_permissionsGranted
                   ? TextButton(
                 onPressed: _askForPermissions,
-                child: const Text('İzin Ver'),
+                child: Text(l10n.grantPermission),
               )
                   : null, // İzin varsa butona gerek yok
             ),

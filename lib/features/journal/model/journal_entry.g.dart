@@ -25,13 +25,16 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       tags: (fields[5] as List?)?.cast<String>(),
       isFavorite: fields[6] as bool,
       title: fields[7] as String?,
+      mediaItems: (fields[8] as List?)?.cast<MediaItem>(),
+      isMarkdown: fields[9] as bool,
+      drawingData: fields[10] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, JournalEntry obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +50,13 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       ..writeByte(6)
       ..write(obj.isFavorite)
       ..writeByte(7)
-      ..write(obj.title);
+      ..write(obj.title)
+      ..writeByte(8)
+      ..write(obj.mediaItems)
+      ..writeByte(9)
+      ..write(obj.isMarkdown)
+      ..writeByte(10)
+      ..write(obj.drawingData);
   }
 
   @override
@@ -57,6 +66,52 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is JournalEntryAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class MediaItemAdapter extends TypeAdapter<MediaItem> {
+  @override
+  final int typeId = 2;
+
+  @override
+  MediaItem read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return MediaItem(
+      id: fields[0] as String?,
+      path: fields[1] as String,
+      type: fields[2] as MediaType,
+      thumbnailPath: fields[3] as String?,
+      createdAt: fields[4] as DateTime?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MediaItem obj) {
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.path)
+      ..writeByte(2)
+      ..write(obj.type)
+      ..writeByte(3)
+      ..write(obj.thumbnailPath)
+      ..writeByte(4)
+      ..write(obj.createdAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MediaItemAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -326,6 +381,55 @@ class MoodAdapter extends TypeAdapter<Mood> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MoodAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class MediaTypeAdapter extends TypeAdapter<MediaType> {
+  @override
+  final int typeId = 3;
+
+  @override
+  MediaType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return MediaType.image;
+      case 1:
+        return MediaType.video;
+      case 2:
+        return MediaType.audio;
+      case 3:
+        return MediaType.file;
+      default:
+        return MediaType.image;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, MediaType obj) {
+    switch (obj) {
+      case MediaType.image:
+        writer.writeByte(0);
+        break;
+      case MediaType.video:
+        writer.writeByte(1);
+        break;
+      case MediaType.audio:
+        writer.writeByte(2);
+        break;
+      case MediaType.file:
+        writer.writeByte(3);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MediaTypeAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

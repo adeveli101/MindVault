@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // BlocBuilder için eklendi
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // Kendi proje yollarınızı kontrol edin!
 import 'package:mindvault/features/journal/screens/home/onboarding_screen.dart';
@@ -16,6 +17,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Mevcut temayı ve renkleri al
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -23,7 +25,7 @@ class HomeScreen extends StatelessWidget {
 
     // Görüntülenecek tarih
     final now = DateTime.now();
-    final formattedDate = DateFormat('dd MMMM yyyy, EEEE', 'tr_TR').format(now); // Yıl eklendi
+    final formattedDate = DateFormat('dd MMMM yyyy, EEEE', l10n.localeName).format(now);
 
     return Stack(
       children: [
@@ -41,7 +43,7 @@ class HomeScreen extends StatelessWidget {
                   color: colorScheme.primary.withOpacity(0.9),
                 ),
                 Text(
-                  'Mind Vault',
+                  l10n.appTitle,
                   style: textTheme.headlineLarge?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -58,7 +60,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 85),
                 Text(
-                  '"Düşünceleriniz sizin özel alanınızdır."',
+                  l10n.homeQuote,
                   style: textTheme.bodyLarge?.copyWith(
                     fontStyle: FontStyle.italic,
                     color: colorScheme.onSurface.withOpacity(0.75),
@@ -81,7 +83,7 @@ class HomeScreen extends StatelessWidget {
                 color: colorScheme.primary.withOpacity(0.8),
                 size: 31
             ),
-            tooltip: 'Neden Mind Vault?',
+            tooltip: l10n.whyMindVault,
             constraints: const BoxConstraints(),
             onPressed: () {
               Navigator.push(
@@ -101,8 +103,8 @@ class HomeScreen extends StatelessWidget {
               bool isSubscribed = false;
               bool isLoading = false;
               IconData iconData = Icons.workspace_premium_outlined;
-              String labelText = 'Freemium'; // Freemium için metin
-              String tooltipText = "Premium'a Yükselt";
+              String labelText = l10n.freemium;
+              String tooltipText = l10n.upgradeToPremium;
               Color chipBackgroundColor = colorScheme.secondaryContainer.withOpacity(0.8); // Freemium arka plan
               Color contentColor = colorScheme.onSecondaryContainer; // Freemium içerik rengi
               BorderSide? borderSide = BorderSide(color: colorScheme.secondary.withOpacity(0.6)); // Freemium kenarlık
@@ -111,8 +113,8 @@ class HomeScreen extends StatelessWidget {
                 isSubscribed = state.isSubscribed;
                 if (isSubscribed) {
                   iconData = Icons.workspace_premium_rounded;
-                  labelText = 'Premium'; // Premium için metin
-                  tooltipText = "Premium Üye";
+                  labelText = l10n.premium;
+                  tooltipText = l10n.premiumMember;
                   chipBackgroundColor = Colors.amber.shade700.withOpacity(0.9); // Premium arka plan (altın)
                   contentColor = Colors.white; // Premium içerik rengi
                   borderSide = null; // Premium için kenarlık yok

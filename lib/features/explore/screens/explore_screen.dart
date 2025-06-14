@@ -5,14 +5,16 @@
 
 import 'package:flutter/foundation.dart'; // clamp, kDebugMode için
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Gerekli Proje İçi Import'lar (Yolların doğruluğunu kontrol edin)
 import 'package:mindvault/features/journal/screens/settings/settings_theme_screen.dart'; // Ayarlar ekranına yönlendirme için
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
 import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart';
 import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
+import 'package:mindvault/features/journal/subscription/subscription_screen.dart';
 import 'package:stacked_themes/stacked_themes.dart'; // Aktif temayı almak için
+import 'package:mindvault/features/journal/subscription/subscription_bloc.dart';
 
 // MainScreen içindeki sabitler (tutarlılık için veya global bir yerden alınabilir)
 const double kBottomNavHeight = 65.0;
@@ -170,29 +172,69 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // --- Diğer Yardımcı Metotlar ---
 
   /// Tema tipinden (enum) okunabilir bir stil adı (String) döndürür.
-  String _getBaseStyleName(NotebookThemeType type, AppLocalizations l10n) {
+  String _getBaseStyleName(NotebookThemeType type) {
     String typeName = type.toString().split('.').last;
-    typeName = typeName.replaceAll('Small', '').replaceAll('Medium', '').replaceAll('Large', '');
+    typeName = typeName
+        .replaceAll('Small', '')
+        .replaceAll('Medium', '')
+        .replaceAll('Large', '');
+
     switch (typeName) {
-      case 'defaultLight': return l10n.themeDefaultLight;
-      case 'defaultDark': return l10n.themeDefaultDark;
-      case 'classicLeather': return l10n.themeClassicLeather;
-      case 'antique': return l10n.themeAntique;
-      case 'blueprint': return l10n.themeBlueprint;
-      case 'scrapbook': return l10n.themeScrapbook;
-      case 'japanese': return l10n.themeJapanese;
-      case 'watercolor': return l10n.themeWatercolor;
-      default: return typeName;
+      case 'defaultLight':
+        return "Aydınlık";
+      case 'defaultDark':
+        return "Altın Vurgu";
+      case 'classicLeather':
+        return "Deri";
+      case 'antique':
+        return "Antika";
+      case 'blueprint':
+        return "Mimari";
+      case 'scrapbook':
+        return "Karalama";
+      case 'japanese':
+        return "Minimalist";
+      case 'watercolor':
+        return "Suluboya";
+      default:
+        return typeName; // Eşleşme yoksa enum ismini döndür
     }
   }
 
   /// Seçilen tema stilini argument olarak göndererek SettingsThemeScreen'e yönlendirir.
   void _navigateToSettingsWithStyle(NotebookThemeType selectedStyle) {
     if (kDebugMode) print("SettingsThemeScreen'e gidiliyor, başlangıç stili: $selectedStyle");
+    
+    // Premium tema kontrolü
+    final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                     (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
+    
+    final selectedTheme = _originalBaseThemes.firstWhere(
+      (theme) => ThemeConfig.getBaseStyle(theme.type) == selectedStyle,
+      orElse: () => _originalBaseThemes.first,
+    );
+    
+    if (!selectedTheme.isFree && !isPremium) {
+      // Premium tema seçildi, kullanıcıya bilgi ver
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_getBaseStyleName(selectedStyle)} teması için Premium üyelik gereklidir.'),
+          action: SnackBarAction(
+            label: 'Premium\'a Geç',
+            onPressed: () {
+              Navigator.pushNamed(context, '/subscription');
+            },
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    
     Navigator.push(
       context,
       MaterialPageRoute(
-        // Hedef ekrana başlangıç stilini constructor ile iletiyoruz
         builder: (_) => SettingsThemeScreen(initialBaseStyle: selectedStyle),
       ),
     );
@@ -200,14 +242,29 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   /// Bir küçük resme tıklandığında state'i günceller ve listeyi kaydırır.
   void _handleThumbnailTap(AppThemeData tappedThemeData, int tappedDisplayIndex) {
-    // Tıklanan temanın orijinal (_originalBaseThemes) listedeki index'ini bul
-    final originalIndex = _originalBaseThemes.indexWhere((theme) => theme.type == tappedThemeData.type);
-    // Geçerli bir index ise ve zaten seçili değilse state'i güncelle
-    if (originalIndex != -1 && mounted && _selectedPreviewIndex != originalIndex) {
+    // Premium tema kontrolü
+    final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                     (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
+    
+    if (!tappedThemeData.isFree && !isPremium) {
+      // Premium tema seçildi, SubscriptionScreen'i göster
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => const SubscriptionScreen(),
+      );
+      return;
+    }
+
+    // Seçilen temanın orijinal listedeki index'ini bul
+    final originalIndex = _originalBaseThemes.indexWhere(
+            (theme) => ThemeConfig.getBaseStyle(theme.type) == ThemeConfig.getBaseStyle(tappedThemeData.type));
+
+    if (originalIndex != -1) {
       setState(() {
-        _selectedPreviewIndex = originalIndex; // Önizlenecek temayı güncelle
+        _selectedPreviewIndex = originalIndex;
       });
-      // Tıklanan küçük resmi ortaya kaydır
       _scrollToThumbnail(tappedDisplayIndex);
     }
   }
@@ -215,22 +272,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // --- Ana Build Metodu ---
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     // Yükleme Durumu
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator.adaptive());
     }
     // Hata Durumu (Tema Yoksa)
     if (_displayThemes.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Text(
-            l10n.themesCouldNotBeLoaded,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text("Temalar yüklenemedi.", textAlign: TextAlign.center,),),);
     }
 
     // Güvenli Index Erişimi ve Seçili Tema Verisi
@@ -239,36 +287,58 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     // Ana Ekran Düzeni
     return Scaffold(
+      // Arka planı transparan yapıyoruz ki MainScreen'deki arka plan görünsün
       backgroundColor: Colors.transparent,
+      // Eğer bu ekran MainScreen'in bir parçasıysa genellikle AppBar gerekmez.
+      // Ancak bağımsız olarak da açılabilirse veya başlık isteniyorsa eklenebilir.
+      // appBar: AppBar(
+      //   title: const Text('Temaları Keşfet'),
+      //   backgroundColor: Colors.transparent,
+      //   elevation: 0,
+      //   centerTitle: true,
+      // ),
       body: Padding(
+        // Alt navigasyon çubuğu ve diğer UI elemanları için genel boşluk
+        // Not: Eğer MainScreen içinde kullanılıyorsa, MainScreen'deki padding yeterli olabilir.
+        // Bağımsız çalışması için buraya da ekliyoruz.
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom + kBottomNavHeight + kBottomNavBottomMargin - 90,
-          top: MediaQuery.of(context).padding.top + 20
+            bottom: MediaQuery.of(context).padding.bottom + kBottomNavHeight + kBottomNavBottomMargin -90, // Toplam alt boşluk
+            top: MediaQuery.of(context).padding.top + 20 // Üst sistem çubuğu için boşluk
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Bölüm 1: Detaylı Önizleme Alanı
             Expanded(
-              flex: 6,
-              child: _buildDetailPreview(context, selectedPreviewTheme, l10n),
+              flex: 6, // Önizlemeye biraz daha fazla yer verelim
+              child: _buildDetailPreview(context, selectedPreviewTheme),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 24), // Alanlar arası boşluk
+
+            // Bölüm 2: Yatay Küçük Resim Listesi
             SizedBox(
-              height: 115,
+              height: 115, // Yüksekliği biraz arttıralım
               child: _buildThumbnailList(context),
             ),
+            // const SizedBox(height: 10), // Alt boşluk kaldırıldı, genel padding'e dahil
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailPreview(BuildContext context, AppThemeData previewTheme, AppLocalizations l10n) {
-    final String styleName = _getBaseStyleName(previewTheme.type, l10n);
+  // --- Widget Oluşturma Yardımcı Metotları ---
+
+  /// Büyük, detaylı tema önizleme kartını oluşturur.
+  Widget _buildDetailPreview(BuildContext context, AppThemeData previewTheme) {
+    final String styleName = _getBaseStyleName(previewTheme.type);
     final bool isLocked = !previewTheme.isFree;
     final bool isApplied = _currentAppliedBaseStyle != null &&
         ThemeConfig.getBaseStyle(previewTheme.type) == _currentAppliedBaseStyle;
+    final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                     (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
 
+    // Önizleme kartını, seçilen temanın kendi Material temasıyla sar
     return Theme(
       data: previewTheme.materialTheme,
       child: Builder(
@@ -295,6 +365,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // Arka Plan Resmi
                 Image.asset(
                   previewTheme.backgroundAssetPath,
                   fit: BoxFit.cover,
@@ -304,11 +375,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Icon(
                         Icons.error_outline,
                         color: colorScheme.error,
-                        size: 40
+                        size: 40,
                       ),
                     ),
                   ),
                 ),
+                // İçerik Katmanı (Gradient ile)
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -326,6 +398,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Tema Adı
                       Text(
                         styleName,
                         style: textTheme.headlineSmall?.copyWith(
@@ -334,17 +407,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           shadows: [
                             Shadow(
                               blurRadius: 4,
-                              color: Colors.black.withOpacity(0.5)
+                              color: Colors.black.withOpacity(0.5),
                             )
-                          ]
+                          ],
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
+                      // Örnek Metinler
                       Text(
-                        l10n.exampleTitle,
+                        'Örnek Başlık',
                         style: textTheme.titleLarge?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.95)
+                          color: colorScheme.onSurface.withOpacity(0.95),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -352,10 +426,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: Text(
-                          l10n.exampleDescription,
+                          'Seçili tema ile metinler böyle görünecek. Farklı renkler ve fontlar...',
                           style: textTheme.bodyMedium?.copyWith(
                             height: 1.45,
-                            color: colorScheme.onSurface.withOpacity(0.9)
+                            color: colorScheme.onSurface.withOpacity(0.9),
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 3,
@@ -363,39 +437,38 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       ),
                       const Spacer(),
+                      // Örnek Buton
                       ElevatedButton.icon(
                         icon: const Icon(Icons.star_outline_rounded, size: 18),
-                        label: Text(l10n.exampleButton),
+                        label: const Text('Örnek Buton'),
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
                           elevation: 3,
                         ),
                       ),
                       const SizedBox(height: 20),
-                      if (!isLocked)
+                      // Ayarlar Butonu veya Durum Çipi
+                      if (!isLocked || isPremium) // Kilitli değilse veya premium ise butonu göster
                         FilledButton.tonalIcon(
                           icon: Icon(
                             isApplied ? Icons.palette_outlined : Icons.settings_rounded,
-                            size: 18
+                            size: 18,
                           ),
-                          label: Text(
-                            isApplied ? l10n.setAppliedStyle : l10n.goToThemeSettings
-                          ),
+                          label: Text(isApplied ? 'Uygulanan Stili Ayarla' : 'Tema Ayarlarına Git'),
                           onPressed: () {
-                            _navigateToSettingsWithStyle(
-                              ThemeConfig.getBaseStyle(previewTheme.type)
-                            );
+                            _navigateToSettingsWithStyle(ThemeConfig.getBaseStyle(previewTheme.type));
                           },
                         )
-                      else
-                        Chip(
-                          avatar: const Icon(Icons.lock_outline_rounded, size: 16),
-                          label: Text(l10n.premium),
+                      else // Kilitliyse çip göster
+                        const Chip(
+                          avatar: Icon(Icons.lock_outline_rounded, size: 16),
+                          label: Text('Premium'),
                         ),
                     ],
                   ),
                 ),
-                if (isLocked)
+                // Kilit İkonu
+                if (isLocked && !isPremium)
                   Positioned(
                     top: 12,
                     right: 12,
@@ -408,7 +481,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Icon(
                         Icons.lock,
                         color: Colors.white.withOpacity(0.9),
-                        size: 16
+                        size: 16,
                       ),
                     ),
                   ),
@@ -511,6 +584,111 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildPreview(AppThemeData themeData) {
+    return Container(
+      height: 400,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Image.asset(
+                  themeData.backgroundAssetPath,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          themeData.isFree ? Icons.lock_open : Icons.lock,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          themeData.isFree ? 'Ücretsiz' : 'Premium',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        themeData.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (!themeData.isFree)
+                      ElevatedButton(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const SubscriptionScreen(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Premium\'a Yükselt'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -104,6 +104,16 @@ class JournalEntry extends HiveObject with EquatableMixin { // HiveObject'ten t�
   @HiveField(7) // title için yeni Hive alanı index'i
   final String? title; // Yeni başlık alanı (nullable)
 
+  // Yeni alanlar
+  @HiveField(8)
+  final List<MediaItem>? mediaItems; // Medya öğeleri listesi
+
+  @HiveField(9)
+  final bool isMarkdown; // Markdown formatında mı?
+
+  @HiveField(10)
+  final String? drawingData; // Çizim verisi (base64 formatında)
+
   JournalEntry({
     String? id,
     required this.content,
@@ -112,8 +122,11 @@ class JournalEntry extends HiveObject with EquatableMixin { // HiveObject'ten t�
     this.mood,
     this.tags,
     this.isFavorite = false,
-    this.title, // Constructor'a eklendi
-  })  : id = id ?? const Uuid().v4(), // const kullanıldı
+    this.title,
+    this.mediaItems,
+    this.isMarkdown = false,
+    this.drawingData,
+  })  : id = id ?? const Uuid().v4(),
         updatedAt = updatedAt ?? createdAt;
 
   JournalEntry copyWith({
@@ -125,6 +138,9 @@ class JournalEntry extends HiveObject with EquatableMixin { // HiveObject'ten t�
     List<String>? tags, // Nullable override için düzeltildi
     bool? isFavorite,
     String? title, // copyWith'e eklendi (nullable)
+    List<MediaItem>? mediaItems,
+    bool? isMarkdown,
+    String? drawingData,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -137,6 +153,9 @@ class JournalEntry extends HiveObject with EquatableMixin { // HiveObject'ten t�
       tags: tags != null || this.tags == null ? tags : this.tags,
       isFavorite: isFavorite ?? this.isFavorite,
       title: title != null || this.title == null ? title : this.title, // title için eklendi
+      mediaItems: mediaItems != null || this.mediaItems == null ? mediaItems : this.mediaItems,
+      isMarkdown: isMarkdown ?? this.isMarkdown,
+      drawingData: drawingData ?? this.drawingData,
     );
   }
 
@@ -193,6 +212,9 @@ class JournalEntry extends HiveObject with EquatableMixin { // HiveObject'ten t�
     tags,
     isFavorite,
     title, // props'a eklendi
+    mediaItems,
+    isMarkdown,
+    drawingData,
   ];
 
   // HiveObject'ten geldiği için `toString` zaten var ama override edilebilir.
@@ -403,4 +425,45 @@ extension MoodUtils on Mood {
     // default: return toString().split('.').last; // Varsayılan olarak enum ismini döndür
     }
   }
+}
+
+// Medya öğesi için yeni sınıf
+@HiveType(typeId: 2)
+class MediaItem {
+  @HiveField(0)
+  final String id;
+
+  @HiveField(1)
+  final String path; // Yerel dosya yolu veya URL
+
+  @HiveField(2)
+  final MediaType type;
+
+  @HiveField(3)
+  final String? thumbnailPath; // Küçük resim yolu (video için)
+
+  @HiveField(4)
+  final DateTime createdAt;
+
+  MediaItem({
+    String? id,
+    required this.path,
+    required this.type,
+    this.thumbnailPath,
+    DateTime? createdAt,
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
+}
+
+// Medya türü için enum
+@HiveType(typeId: 3)
+enum MediaType {
+  @HiveField(0)
+  image,
+  @HiveField(1)
+  video,
+  @HiveField(2)
+  audio,
+  @HiveField(3)
+  file
 }

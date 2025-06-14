@@ -1,11 +1,12 @@
 // lib/features/subscription/screens/subscription_screen.dart
 // Yolların doğruluğundan emin olun!
-// ignore_for_file: unused_local_variable
+// ignore_for_file: unused_local_variable, unused_element
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stacked_themes/stacked_themes.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // Proje İçi Importlar - KENDİ YOLUNUZLA GÜNCELLEYİN!
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
@@ -18,209 +19,79 @@ import 'package:mindvault/features/journal/subscription/subscription_bloc.dart';
 //-------------------------------------------------------------------
 // Yardımcı Fonksiyon: Sheet veya Dialog olarak göstermek için
 //-------------------------------------------------------------------
-Future<void> showSubscriptionSheet(BuildContext context) {
-  final subscriptionBloc = BlocProvider.of<SubscriptionBloc>(context);
+Future<void> showSubscriptionSheet(BuildContext context) async {
   final themeManager = getThemeManager(context);
-  // Başlangıç tema verisini al (sheet arka planı için)
-  final initialThemeData = ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
+  final AppThemeData currentGlobalThemeData =
+      ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
 
-  // Sheet içinde önizlenen temayı takip etmek için ValueNotifier
-  final ValueNotifier<AppThemeData> previewThemeNotifier = ValueNotifier(initialThemeData);
-
-
-  return showModalBottomSheet<void>(
+  await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (BuildContext sheetContext) {
-      // ValueListenableBuilder ile önizlenen temayı dinle ve arka planı güncelle
-      return ValueListenableBuilder<AppThemeData>(
-        valueListenable: previewThemeNotifier,
-        builder: (context, previewThemeData, _) {
-          // Mevcut global tema (widget stilleri için kullanılabilir)
-          final AppThemeData currentGlobalThemeData = ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
-
-          return BlocProvider.value(
-            value: subscriptionBloc,
-            child: DraggableScrollableSheet(
-              initialChildSize: 0.90,
-              minChildSize: 0.5,
-              maxChildSize: 0.9,
-              expand: false,
-              builder: (_, scrollController) {
-                return Container(
-                  clipBehavior: Clip.antiAlias, // Stack içindeki Image'ın taşmasını engelle
-                  decoration: const BoxDecoration(
-                    // Arka plan artık Stack içinde Image ile sağlanacak
-                    // color: previewThemeData.materialTheme.scaffoldBackgroundColor, // <-- KALDIRILDI
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    routeSettings: const RouteSettings(name: '/subscription'),
+    builder: (BuildContext context) {
+      return Container(
+        margin: EdgeInsets.only(
+          top: MediaQuery.of(context).size.height * 0.12,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Stack(
+          children: [
+            // Arka plan resmi
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.asset(
+                  currentGlobalThemeData.backgroundAssetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: currentGlobalThemeData.materialTheme.scaffoldBackgroundColor,
                   ),
-                  child: Stack( // Arka planı ve içeriği üst üste bindir
-                    children: [
-                      // --- Arka Plan Katmanı ---
-                      Positioned.fill(
-                        child: Image.asset(
-                          previewThemeData.backgroundAssetPath, // Dinamik arka plan
-                          fit: BoxFit.fill, // Arka planı kapla
-                          errorBuilder: (context, error, stackTrace) => Container( // Hata durumu için renk
-                              color: currentGlobalThemeData.materialTheme.scaffoldBackgroundColor
-                          ),
-                        ),
-                      ),
-                      // --- İçerik Katmanı ---
-                      Column(
-                        children: [
-                          // Başlık ve Kapat Butonu (Arka planı biraz belirginleştirmek için Container içinde)
-                          Container(
-                            //color: currentGlobalThemeData.materialTheme.colorScheme.surface.withOpacity(0.8), // Hafif yarı saydam
-                            padding: const EdgeInsets.fromLTRB(16, 26, 16, 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-
-                                IconButton(
-                                  icon: Icon(Icons.close,
-                                      color: currentGlobalThemeData.materialTheme.colorScheme.onSurface),
-                                  onPressed: () => Navigator.pop(sheetContext),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Divider(height: 1, color: currentGlobalThemeData.materialTheme.dividerColor.withOpacity(0.5)),
-                          Expanded(
-                            child: SubscriptionCoreUI(
-                              isFullScreen: false,
-                              externalScrollController: scrollController,
-                              // Callback fonksiyonunu geçerek önizlenen temayı dinle
-                              onPreviewThemeChanged: (newPreviewTheme) {
-                                previewThemeNotifier.value = newPreviewTheme;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
+                ),
+              ),
+            ),
+            // İçerik
+            SubscriptionScreen(
+              isFullScreen: false,
+              onPreviewThemeChanged: (themeData) {
+                // Tema önizlemesi için callback
+                if (context.mounted) {
+                  final themeManager = getThemeManager(context);
+                  final themeIndex = ThemeConfig.getIndexByThemeType(themeData.type);
+                  themeManager.selectThemeAtIndex(themeIndex);
+                }
               },
             ),
-          );
-        },
+          ],
+        ),
       );
     },
-  ).whenComplete(() {
-    // Sheet kapandığında ValueNotifier'ı dispose et
-    previewThemeNotifier.dispose();
-  });
+  );
 }
 
 //-------------------------------------------------------------------
 // Ana Ekran Widget'ı (Tam Sayfa Gösterim İçin)
 //-------------------------------------------------------------------
-class SubscriptionScreen extends StatefulWidget { // StatefulWidget'a dönüştü
-  const SubscriptionScreen({super.key});
+class SubscriptionScreen extends StatefulWidget {
+  final bool isFullScreen;
+  final ScrollController? externalScrollController;
+  final ValueChanged<AppThemeData>? onPreviewThemeChanged;
+
+  const SubscriptionScreen({
+    super.key,
+    this.isFullScreen = true,
+    this.externalScrollController,
+    this.onPreviewThemeChanged,
+  });
 
   @override
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  // Önizlenen temanın verisini tutacak state
-  AppThemeData? _previewThemeData;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Başlangıçta global temayı önizleme olarak ayarla
-    if (_previewThemeData == null) {
-      final themeManager = getThemeManager(context);
-      _previewThemeData = ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
-    }
-  }
-
-
-  @override
-  Widget build(BuildContext context) {
-    final themeManager = getThemeManager(context);
-    // AppBar ve diğer UI elemanları için global temayı kullanmaya devam et
-    final AppThemeData currentGlobalThemeData =
-    ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
-
-    // previewThemeData null ise (başlangıçta olabilir), global temayı kullan
-    final AppThemeData backgroundThemeToShow = _previewThemeData ?? currentGlobalThemeData;
-
-    final bool isSubscribed =
-    (context.watch<SubscriptionBloc>().state is SubscriptionLoaded)
-        ? (context.read<SubscriptionBloc>().state as SubscriptionLoaded)
-        .isSubscribed
-        : false;
-
-    return Scaffold(
-      // AppBar'ı global temaya göre stillendir
-      appBar: AppBar(
-        title: Text(isSubscribed ? 'Premium Temalar' : 'Premium\'a Yükselt'),
-        // backgroundColor: currentGlobalThemeData
-        //     .materialTheme.appBarTheme.backgroundColor ??
-        //     currentGlobalThemeData.materialTheme.colorScheme.surface.withOpacity(0.4),
-        elevation: 0,
-        leading: BackButton(onPressed: () => Navigator.pop(context)),
-      ),
-      // Scaffold'un arka planını transparan yap, Stack yönetecek
-      backgroundColor: Colors.transparent,
-      // İçeriği Stack ile sararak dinamik arka plan ekle
-      body: Stack(
-          children: [
-            // --- Arka Plan Katmanı ---
-            Positioned.fill(
-              child: Image.asset(
-                backgroundThemeToShow.backgroundAssetPath, // Önizlenen temanın asset'i
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container( // Hata durumu için renk
-                    color: currentGlobalThemeData.materialTheme.scaffoldBackgroundColor
-                ),
-              ),
-            ),
-            // --- İçerik Katmanı ---
-            // SubscriptionCoreUI'ı doğrudan body olarak kullanma yerine Stack'in üzerine koy
-            SubscriptionCoreUI(
-              isFullScreen: true,
-              // Callback ile önizleme temasını güncelle
-              onPreviewThemeChanged: (newPreviewTheme) {
-                // Sadece farklı bir tema seçildiğinde setState çağır
-                if (mounted && _previewThemeData?.type != newPreviewTheme.type) {
-                  setState(() {
-                    _previewThemeData = newPreviewTheme;
-                  });
-                }
-              },
-            ),
-          ]
-      ),
-    );
-  }
-}
-
-//-------------------------------------------------------------------
-// Çekirdek UI Widget'ı (Hem tam sayfa hem de sheet/dialog için)
-//-------------------------------------------------------------------
-class SubscriptionCoreUI extends StatefulWidget {
-  final bool isFullScreen;
-  final ScrollController? externalScrollController;
-  // YENİ: Önizlenen tema değiştiğinde dışarıyı bilgilendirmek için callback
-  final ValueChanged<AppThemeData>? onPreviewThemeChanged;
-
-  const SubscriptionCoreUI({
-    super.key,
-    this.isFullScreen = true,
-    this.externalScrollController,
-    this.onPreviewThemeChanged, // Callback parametresi eklendi
-  });
-
-  @override
-  State<SubscriptionCoreUI> createState() => _SubscriptionCoreUIState();
-}
-
-class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
   NotebookThemeType? _selectedBaseStyleForPreview;
   PageController? _pageController;
   bool _showLeftArrow = false;
@@ -245,7 +116,6 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
           }
         });
       }
-
     }
 
     final currentState = context.read<SubscriptionBloc>().state;
@@ -262,15 +132,13 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
     _displayableThemes = ThemeConfig.getBaseThemeRepresentations();
 
     if (_displayableThemes.isEmpty) {
-      if (kDebugMode) print("SubscriptionCoreUI UYARI: Gösterilecek tema listesi boş.");
+      if (kDebugMode) print("SubscriptionScreen UYARI: Gösterilecek tema listesi boş.");
       return;
     }
 
-
     final themeManager = getThemeManager(context);
     final currentAppliedThemeType =
-    ThemeConfig.getThemeTypeByIndex(themeManager.selectedThemeIndex ?? 0);
-    // _selectedBaseStyleForPreview, başlangıçta uygulanan temayla aynı olsun
+        ThemeConfig.getThemeTypeByIndex(themeManager.selectedThemeIndex ?? 0);
     _selectedBaseStyleForPreview =
         ThemeConfig.getBaseStyle(currentAppliedThemeType);
 
@@ -326,7 +194,6 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
     }
   }
 
-
   String _getBaseStyleName(NotebookThemeType type) {
     String typeName = type.toString().split('.').last;
     typeName = typeName
@@ -346,10 +213,9 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
     }
   }
 
-  // TEMA UYGULAMA FONKSİYONU GÜNCELLENDİ
   void _applyTheme(AppThemeData themeToApply, ThemeManager themeManager,
       BuildContext blocContext, bool isSubscribed) {
-
+    final l10n = AppLocalizations.of(blocContext)!;
     final newSelectedBaseStyle = ThemeConfig.getBaseStyle(themeToApply.type);
 
     // Kilitli tema kontrolü
@@ -357,18 +223,17 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
       ScaffoldMessenger.of(blocContext).showSnackBar(
         SnackBar(
           content: Text(
-              '${_getBaseStyleName(newSelectedBaseStyle)} teması için Premium üyelik gereklidir.'),
+              l10n.themeLocked(_getBaseStyleName(newSelectedBaseStyle))),
           action: SnackBarAction(
-            label: 'Abone Ol',
+            label: l10n.subscribe,
             onPressed: () {
-              blocContext.read<SubscriptionBloc>().add(PurchaseSubscription());
+              blocContext.read<SubscriptionBloc>().add(PurchaseSubscription('subs'));
             },
           ),
           backgroundColor: Theme.of(blocContext).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
-      // Kilitli temaya tıklanınca önizlemeyi de değiştirmeyelim
       return;
     }
 
@@ -380,262 +245,299 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
       // Yeni seçilen temanın verisini dışarıya bildir
       widget.onPreviewThemeChanged?.call(themeToApply);
     }
-
-    // GLOBAL TEMA DEĞİŞİKLİĞİ YOK!
-    // themeManager.selectThemeAtIndex(...) çağrısı kaldırıldı.
   }
-
 
   @override
   Widget build(BuildContext context) {
-    // Global temayı widget stilleri için alalım
-    final themeManager = getThemeManager(context);
-    final AppThemeData currentGlobalThemeData =
-    ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
-    final Color currentPrimaryColor =
-        currentGlobalThemeData.materialTheme.colorScheme.primary;
-
-    if (_displayableThemes.isEmpty || _pageController == null) {
-      return Center(
-        child: _displayableThemes.isEmpty
-            ? const Text("Temalar yüklenemedi.")
-            : const CircularProgressIndicator(),
-      );
-    }
-
-    // BlocConsumer yapısı aynı kalıyor
     return BlocConsumer<SubscriptionBloc, SubscriptionState>(
       listenWhen: (previous, current) {
-        if (previous is SubscriptionLoading && current is SubscriptionLoaded && current.isSubscribed) return true;
-        if (previous is SubscriptionLoaded && !previous.isSubscribed && current is SubscriptionLoaded && current.isSubscribed) return true;
-        return false;
-      },
-      listener: (context, state) {
-        if (state is SubscriptionLoaded && state.isSubscribed) {
+        if (current is SubscriptionLoaded) {
+          if (current.isSubscribed) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.premiumActive),
+                backgroundColor: Colors.green.shade700,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } else if (current is SubscriptionError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Premium üyeliğiniz aktif! Tüm temalara erişebilirsiniz.'),
-              backgroundColor: Colors.green.shade700,
+              content: Text(current.message),
+              backgroundColor: Colors.red.shade700,
               duration: const Duration(seconds: 3),
             ),
           );
         }
+        return false;
+      },
+      listener: (context, state) {
+        // State changes are handled in listenWhen
       },
       builder: (context, state) {
-        final bool isSubscribed = (state is SubscriptionLoaded) ? state.isSubscribed : false;
-        final String? price = (state is SubscriptionLoaded) ? state.price : null;
-
-        Widget loadingIndicator = const Center(child: CircularProgressIndicator());
-
-        if (state is SubscriptionInitial || (state is SubscriptionLoading && _displayableThemes.isEmpty)) {
-          return widget.isFullScreen
-              ? Center(key: UniqueKey(), child: const CircularProgressIndicator())
-              : loadingIndicator;
-        }
-
-        // Ana içerik
-        final contentColumn = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Hata gösterimi (global temayı kullanır)
-            if (widget.isFullScreen && state is SubscriptionError && !isSubscribed)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Card(
-                  color: currentGlobalThemeData.materialTheme.colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      state.message,
-                      style: TextStyle(color: currentGlobalThemeData.materialTheme.colorScheme.onErrorContainer),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-            // Abone değilse gösterilecekler (global temayı kullanır)
-            if (!isSubscribed) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                  'MindVault Premium',
-                  style: currentGlobalThemeData.materialTheme.textTheme.headlineMedium?.copyWith(
-                    color: currentPrimaryColor,
-                    fontWeight: FontWeight.bold,
+        final l10n = AppLocalizations.of(context)!;
+        
+        if (state is SubscriptionLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is SubscriptionError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  state.message,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 16,
                   ),
                   textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Text(
-                  'Tüm temalara ve özelliklere erişim sağlayarak MindVault\'ı kişiselleştirin.',
-                  style: currentGlobalThemeData.materialTheme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-
-                      color: currentGlobalThemeData.materialTheme.colorScheme.inverseSurface.withOpacity(0.9),
-                      shadows: [Shadow(blurRadius: 1, color: Colors.black.withOpacity(0.2))]
-                  ),
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<SubscriptionBloc>().add(LoadSubscriptionStatus());
+                  },
+                  child: Text(l10n.retry),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              if (price != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column( // Card yerine Column
-                    children: [
-
-                      // Fiyat Gösterimi
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            price, // Fiyatın para birimini içerdiği varsayılıyor (örn: "₺19,99")
-                            style: currentGlobalThemeData.materialTheme.textTheme.displaySmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: currentGlobalThemeData.materialTheme.colorScheme.onSurface,
-                                shadows: [Shadow(blurRadius: 2, color: Colors.black.withOpacity(0.3))]
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(width: 4),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4.0), // Baseline ayarı
-                            child: Text(
-                              '/aylık', // TODO: Bu bilgiyi dinamik yap (örn. ProductDetails.description'dan?)
-                              style: currentGlobalThemeData.materialTheme.textTheme.titleMedium?.copyWith(
-                                  color: currentGlobalThemeData.materialTheme.colorScheme.onSurface,
-                                  shadows: [Shadow(blurRadius: 1, color: Colors.black.withOpacity(0.2))]
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Abone Ol Butonu
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.star_border_rounded, size: 20), // İkon güncellendi
-                        label: const Text('Hemen Premium Ol'), // Metin güncellendi
-                        onPressed: () { context.read<SubscriptionBloc>().add(PurchaseSubscription()); },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: currentPrimaryColor.withOpacity(0.95), // Hafif opaklık
-                          foregroundColor: currentGlobalThemeData.materialTheme.colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                          textStyle: currentGlobalThemeData.materialTheme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          elevation: 5, // Gölge artırıldı
-                          shadowColor: Colors.black.withOpacity(0.5), // Gölge belirginleştirildi
-                        ),
-                      ),
-                      const SizedBox(height: 12), // Buton altı boşluk
-                      // İptal bilgisi metni
-                      Text(
-                        "Abonelik otomatik yenilenir. İstediğiniz zaman iptal edebilirsiniz.",
-                        textAlign: TextAlign.center,
-                        style: currentGlobalThemeData.materialTheme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: currentGlobalThemeData.materialTheme.colorScheme.onSurface.withOpacity(0.7),
-                            shadows: [Shadow(blurRadius: 1, color: Colors.black.withOpacity(0.1))]
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else if (state is! SubscriptionLoading) // Fiyat yoksa ve yüklenmiyorsa
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Premium abonelik bilgileri alınamadı.',
-                        textAlign: TextAlign.center,
-                        style: currentGlobalThemeData.materialTheme.textTheme.bodyLarge?.copyWith(color: currentGlobalThemeData.materialTheme.colorScheme.error),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Tekrar Dene'),
-                        onPressed: () { context.read<SubscriptionBloc>().add(LoadSubscriptionStatus()); },
-                        style: OutlinedButton.styleFrom(foregroundColor: currentPrimaryColor, side: BorderSide(color: currentPrimaryColor.withOpacity(0.7))),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 16),
-            ],
-            // Tema seçici başlığı (global temayı kullanır)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Text(
-                isSubscribed ? 'Tüm Temalar' : 'Tema Stilleri',
-                style: currentGlobalThemeData.materialTheme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: currentPrimaryColor.withOpacity(0.8)),
-                textAlign: TextAlign.center,
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
-            // Tema Seçici (Kendi UI'ı var)
-            _buildThemeSelector(context, isSubscribed, themeManager),
-            const SizedBox(height: 24),
-            // Alt mesaj (global temayı kullanır)
-            if (!isSubscribed && _displayableThemes.any((t) => !t.isFree))
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 12.0),
-                child: Text(
-                  "✨ Kilitli temaları açmak ve tüm özelliklerden yararlanmak için Premium'a geçin.",
-                  textAlign: TextAlign.center,
-                  style: currentGlobalThemeData.materialTheme.textTheme.bodyMedium?.copyWith(
-                    color: currentGlobalThemeData.materialTheme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            SizedBox(height: widget.isFullScreen ? 20 : 8),
-          ],
-        );
-
-        // İçeriği döndür
-        if (widget.isFullScreen) {
-          // Tam ekranda, arka plan Stack ile yönetildiği için burası transparan olmalı
-          // ve içeriği kaydırılabilir yapmalı
-          return SafeArea(
-              child: Container(
-                color: Colors.transparent, // Önemli: Stack'teki arka planın görünmesini sağlar
-                child: SingleChildScrollView(
-                  controller: widget.externalScrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: contentColumn,
-                ),
-              )
           );
-        } else {
-          // Sheet modunda, dış Container arka planı yönettiği için burası da transparan olmalı
-          return Container(
-              color: Colors.transparent, // Önemli: Stack'teki arka planın görünmesini sağlar
-              child: Scrollbar(
-                controller: widget.externalScrollController,
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  controller: widget.externalScrollController,
-                  padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16, top: 8),
-                  child: contentColumn,
-                ),
-              )
-          );
+        } else if (state is SubscriptionLoaded) {
+          if (state.isSubscribed) {
+            return _buildPremiumContent(context);
+          } else {
+            return _buildSubscriptionContent(context, state.prices);
+          }
         }
+        return const SizedBox.shrink();
       },
     );
   }
 
+  Widget _buildPremiumContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.premiumActive,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        _buildPremiumFeature(
+          context,
+          Icons.palette,
+          l10n.premiumThemes,
+          l10n.premiumThemesDescription,
+        ),
+        const SizedBox(height: 16),
+        _buildPremiumFeature(
+          context,
+          Icons.star,
+          l10n.premiumFeatures,
+          l10n.premiumFeaturesDescription,
+        ),
+        const SizedBox(height: 16),
+        _buildPremiumFeature(
+          context,
+          Icons.support,
+          l10n.premiumSupport,
+          l10n.premiumSupportDescription,
+        ),
+      ],
+    );
+  }
 
-  // _buildThemeSelector, _buildThemeSelectorCard, _buildScrollArrow metotları öncekiyle aynı kalabilir
-  // Sadece _applyTheme'in çağrıldığı yere dikkat edin.
+  Widget _buildSubscriptionContent(BuildContext context, Map<String, String?> prices) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.premiumFeatures,
+          style: Theme.of(context).textTheme.headlineMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        _buildPremiumFeature(
+          context,
+          Icons.palette,
+          l10n.premiumThemes,
+          l10n.premiumThemesDescription,
+        ),
+        const SizedBox(height: 16),
+        _buildPremiumFeature(
+          context,
+          Icons.star,
+          l10n.premiumFeatures,
+          l10n.premiumFeaturesDescription,
+        ),
+        const SizedBox(height: 16),
+        _buildPremiumFeature(
+          context,
+          Icons.support,
+          l10n.premiumSupport,
+          l10n.premiumSupportDescription,
+        ),
+        const SizedBox(height: 32),
+        if (prices.isNotEmpty) ...[
+          _buildSubscriptionOption(
+            context,
+            title: l10n.premiumWeekly,
+            price: (prices['mindvault-sub-weekly'] != null)
+                ? '${prices['mindvault-sub-weekly']}${l10n.weeklyPriceSuffix}'
+                : l10n.seePriceOnGooglePlay,
+            description: l10n.premiumWeeklyDescription,
+            onTap: () => context.read<SubscriptionBloc>().add(
+              PurchaseSubscription('mindvault-sub-weekly'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSubscriptionOption(
+            context,
+            title: l10n.premiumMonthly,
+            price: (prices['subs'] != null)
+                ? '${prices['subs']}${l10n.monthlyPriceSuffix}'
+                : l10n.seePriceOnGooglePlay,
+            description: l10n.premiumMonthlyDescription,
+            onTap: () => context.read<SubscriptionBloc>().add(
+              PurchaseSubscription('subs'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () {
+            context.read<SubscriptionBloc>().add(RestorePurchases());
+          },
+          child: Text(l10n.restorePurchases),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubscriptionOption(
+    BuildContext context, {
+    required String title,
+    required String price,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    final themeManager = getThemeManager(context);
+    final AppThemeData currentGlobalThemeData =
+        ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: currentGlobalThemeData.materialTheme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: currentGlobalThemeData.materialTheme.colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: currentGlobalThemeData.materialTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: currentGlobalThemeData.materialTheme.textTheme.bodyMedium?.copyWith(
+                      color: currentGlobalThemeData.materialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              price,
+              style: currentGlobalThemeData.materialTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: currentGlobalThemeData.materialTheme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeature(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String description,
+  ) {
+    final themeManager = getThemeManager(context);
+    final AppThemeData currentGlobalThemeData =
+        ThemeConfig.getAppThemeDataByIndex(themeManager.selectedThemeIndex ?? 0);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: currentGlobalThemeData.materialTheme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: currentGlobalThemeData.materialTheme.colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: currentGlobalThemeData.materialTheme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: currentGlobalThemeData.materialTheme.colorScheme.onPrimaryContainer,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: currentGlobalThemeData.materialTheme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: currentGlobalThemeData.materialTheme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: currentGlobalThemeData.materialTheme.textTheme.bodyMedium?.copyWith(
+                    color: currentGlobalThemeData.materialTheme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildThemeSelector(
       BuildContext context, bool isUserSubscribed, ThemeManager themeManager) {
@@ -654,18 +556,15 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
               itemCount: _displayableThemes.length,
               itemBuilder: (context, index) {
                 final themeData = _displayableThemes[index];
-                // Önizleme için seçili olanı _selectedBaseStyleForPreview'a göre belirle
                 final bool isSelectedForPreview = _selectedBaseStyleForPreview ==
                     ThemeConfig.getBaseStyle(themeData.type);
                 return _buildThemeSelectorCard(
                   context,
                   themeData,
-                  isSelected: isSelectedForPreview, // Önizleme seçimi
+                  isSelected: isSelectedForPreview,
                   isLocked: !themeData.isFree && !isUserSubscribed,
                   onTap: () {
-                    // _applyTheme SADECE önizlemeyi güncelleyecek ve callback yapacak
                     _applyTheme(themeData, themeManager, context, isUserSubscribed);
-                    // Sayfayı kaydır
                     if(_pageController!.hasClients) {
                       _pageController!.animateToPage(index,
                           duration: const Duration(milliseconds: 300),
@@ -714,11 +613,10 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
   Widget _buildThemeSelectorCard(
       BuildContext context,
       AppThemeData theme, {
-        required bool isSelected, // isSelected artık sadece önizleme vurgusu için
+        required bool isSelected,
         required bool isLocked,
         required VoidCallback onTap,
       }) {
-    // Kartın görünümü için global temayı kullan
     final AppThemeData currentGlobalTheme = ThemeConfig.getAppThemeDataByIndex(
         getThemeManager(context).selectedThemeIndex ?? 0);
 
@@ -737,12 +635,12 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
             padding: const EdgeInsets.all(6.0),
             decoration: BoxDecoration(
               color: currentGlobalTheme
-                  .materialTheme.colorScheme.surfaceContainer // Global tema rengi
+                  .materialTheme.colorScheme.surfaceContainer
                   .withOpacity(isSelected ? 1.0 : 0.8),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
-                    ? currentGlobalTheme.materialTheme.colorScheme.primary // Global tema birincil rengi
+                    ? currentGlobalTheme.materialTheme.colorScheme.primary
                     : (isLocked
                     ? Colors.grey.shade500
                     : currentGlobalTheme
@@ -777,7 +675,7 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.asset(
-                          theme.backgroundAssetPath, // Kartın kendi asset'i
+                          theme.backgroundAssetPath,
                           fit: BoxFit.cover,
                           width: double.infinity,
                           errorBuilder: (ctx, err, st) => Center(
@@ -798,7 +696,6 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
                                 color: Colors.white.withOpacity(0.9), size: 36),
                           ),
                         ),
-                      // Seçili işareti, sadece önizleme için
                       if (isSelected && !isLocked)
                         Positioned(
                           top: 5,
@@ -851,7 +748,6 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
 
   Widget _buildScrollArrow(
       BuildContext context, IconData icon, VoidCallback onPressed) {
-    // Oklar için global temayı kullan
     final AppThemeData currentGlobalTheme = ThemeConfig.getAppThemeDataByIndex(
         getThemeManager(context).selectedThemeIndex ?? 0);
     return Container(
@@ -891,4 +787,4 @@ class _SubscriptionCoreUIState extends State<SubscriptionCoreUI> {
       ),
     );
   }
-} // _SubscriptionCoreUIState sonu
+}

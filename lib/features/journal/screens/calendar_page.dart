@@ -1,7 +1,7 @@
 // lib/features/journal/screens/calendar_page.dart
 // Son Revizyon: Genişleyen/kapanan arama iyileştirmeleri, tek tek filtre kaldırma, hatalar düzeltildi.
 
-// ignore_for_file: use_build_context_synchronously, unused_element
+// ignore_for_file: use_build_context_synchronously, unused_element, unused_local_variable
 
 // ==========================================================================
 // !!! ÖNEMLİ NOT: Klavye Açıldığında Alt Navigasyonun Yükselmesini Önleme !!!
@@ -17,6 +17,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:mindvault/features/journal/screens/widgets/filter_sheet.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // Proje importları
 import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
@@ -340,6 +341,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     final currentTheme = Theme.of(context);
     final currentColorScheme = currentTheme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final double bottomNavBarHeight = kBottomNavHeight + kBottomNavBottomMargin;
     final double bottomSafeArea = MediaQuery.of(context).padding.bottom;
     final double totalBottomPadding = bottomNavBarHeight + bottomSafeArea + 10.0;
@@ -348,30 +350,38 @@ class _CalendarPageState extends State<CalendarPage> {
     return GestureDetector(
       onTap: _dismissSearchIfApplicable,
       child: BlocConsumer<JournalBloc, JournalState>(
-        listener: (context, state) { /* Hata ve Senkronizasyon (önceki gibi) */
-          if (state is JournalFailure) { final messenger = ScaffoldMessenger.maybeOf(context); if (mounted && messenger != null) { messenger.showSnackBar(SnackBar(content: Text('Hata: ${state.errorMessage}'), backgroundColor: currentColorScheme.error)); } /* Hata durumunda filtreleri temizleme isteğe bağlı */ }
-          else if (state is JournalLoadSuccess) { _lastLoadedEntriesForFallback = state.entries; _syncFiltersFromState(state); }
+        listener: (context, state) {
+          if (state is JournalFailure) {
+            final messenger = ScaffoldMessenger.maybeOf(context);
+            if (mounted && messenger != null) {
+              messenger.showSnackBar(SnackBar(
+                content: Text('${l10n.error}: ${state.errorMessage}'),
+                backgroundColor: currentColorScheme.error
+              ));
+            }
+          } else if (state is JournalLoadSuccess) {
+            _lastLoadedEntriesForFallback = state.entries;
+            _syncFiltersFromState(state);
+          }
         },
         builder: (context, state) {
-          // Yükleme ve Hata durumları...
-          if (state is JournalLoading && _lastLoadedEntriesForFallback.isEmpty) { return const Center(child: CircularProgressIndicator()); }
-          else if (state is JournalFailure && _lastLoadedEntriesForFallback.isEmpty) { return Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text("Hata: ${state.errorMessage}"))); }
-          // Başarılı Yükleme Durumu
-          else if (state is JournalLoadSuccess) {
-            return Column( // Filtre alanı + TabView
+          if (state is JournalLoading && _lastLoadedEntriesForFallback.isEmpty) {
+            return Center(child: Text(l10n.loading));
+          } else if (state is JournalFailure && _lastLoadedEntriesForFallback.isEmpty) {
+            return Center(child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Text("${l10n.error}: ${state.errorMessage}")
+            ));
+          } else if (state is JournalLoadSuccess) {
+            return Column(
               children: [
-                // Filtre Kontrolleri (Genişleyen Arama + Filtre Butonu)
                 _buildFilterControls(context, state, currentTheme),
-                // Aktif Filtre Etiketleri (Ayrı bir alanda gösteriliyor)
                 _buildActiveFiltersDisplay(context, state, currentTheme),
-                // Sekmeler
                 Expanded(
                   child: TabBarView(
                     controller: widget.tabController,
                     children: [
-                      // Sekme 1: Filtrelenmiş Liste
                       _buildFilteredEntryList(context, state, currentTheme, totalBottomPadding),
-                      // Sekme 2: Takvim
                       _buildCalendarView(context, state.entries, currentTheme, totalBottomPadding),
                     ],
                   ),
@@ -379,7 +389,7 @@ class _CalendarPageState extends State<CalendarPage> {
               ],
             );
           } else {
-            return const Center(child: CircularProgressIndicator()); // Fallback
+            return Center(child: Text(l10n.loading));
           }
         },
       ),
@@ -389,92 +399,98 @@ class _CalendarPageState extends State<CalendarPage> {
 
   /// Üstteki arama ve filtre kontrol butonlarını oluşturan widget.
   Widget _buildFilterControls(BuildContext context, JournalLoadSuccess state, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(76.0, 8.0, 26.0, 4.0),
       child: Row(
         children: [
-          // Genişleyen Arama Alanı
           Expanded(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               height: 40,
               decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHigh.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(30.0),
-                  border: Border.all(
-                      color: _isSearchExpanded ? theme.colorScheme.primary : theme.colorScheme.outlineVariant.withOpacity(0.7),
-                      width: _isSearchExpanded? 1.5 : 1.0
-                  )
+                color: theme.colorScheme.surfaceContainerHigh.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(30.0),
+                border: Border.all(
+                  color: _isSearchExpanded ? theme.colorScheme.primary : theme.colorScheme.outlineVariant.withOpacity(0.7),
+                  width: _isSearchExpanded ? 1.5 : 1.0
+                )
               ),
-              // Tıklanabilir alan için GestureDetector
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: !_isSearchExpanded ? () { // Sadece daraltılmışken tıkla
+                onTap: !_isSearchExpanded ? () {
                   if (mounted) {
                     setState(() => _isSearchExpanded = true);
-                    WidgetsBinding.instance.addPostFrameCallback((_) { if(mounted) _searchFocusNode.requestFocus(); });
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if(mounted) _searchFocusNode.requestFocus();
+                    });
                   }
                 } : null,
                 child: Stack(
                   alignment: Alignment.centerLeft,
                   children: [
-                    // Arama İkonu / Geri İkonu (Her zaman tıklanabilir)
                     Positioned(
                       left: 0, top: 0, bottom: 0,
                       child: IconButton(
                         icon: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                            child: Icon(
-                                _isSearchExpanded ? Icons.search_sharp : Icons.search,
-                                key: ValueKey<bool>(_isSearchExpanded),
-                                size: 18, color: theme.colorScheme.onSurfaceVariant
-                            )
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                          child: Icon(
+                            _isSearchExpanded ? Icons.search_sharp : Icons.search,
+                            key: ValueKey<bool>(_isSearchExpanded),
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant
+                          )
                         ),
-                        tooltip: _isSearchExpanded ? 'Aramayı Kapat/Temizle' : 'Ara',
+                        tooltip: _isSearchExpanded ? l10n.closeSearch : l10n.search,
                         onPressed: () {
                           if (_isSearchExpanded) {
                             if (_searchController.text.isNotEmpty) {
-                              _removeTextFilter(); // Doluysa sadece metni temizle
+                              _removeTextFilter();
                             } else {
-                              _dismissSearchIfApplicable(forceCollapse: true); // Boşsa daralt
+                              _dismissSearchIfApplicable(forceCollapse: true);
                             }
                           } else {
-                            setState(() => _isSearchExpanded = true); // Daraltılmışsa genişlet
-                            WidgetsBinding.instance.addPostFrameCallback((_) { if(mounted) _searchFocusNode.requestFocus(); }); // ve odaklan
+                            setState(() => _isSearchExpanded = true);
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if(mounted) _searchFocusNode.requestFocus();
+                            });
                           }
                         },
                       ),
                     ),
-
-                    // TextField
                     Positioned(
                       left: 40, right: 40, top: 0, bottom: 0,
                       child: AnimatedOpacity(
-                        opacity: _isSearchExpanded ? 1.0 : 0.0, duration: const Duration(milliseconds: 200),
+                        opacity: _isSearchExpanded ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
                         child: Visibility(
-                          visible: _isSearchExpanded, maintainState: true,
+                          visible: _isSearchExpanded,
+                          maintainState: true,
                           child: TextField(
-                            controller: _searchController, focusNode: _searchFocusNode,
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
                             decoration: InputDecoration(
-                              hintText: 'Ara...',
-                              border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+                              hintText: l10n.search,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 0),
                             ),
-                            style: theme.textTheme.bodyLarge, textAlignVertical: TextAlignVertical.center,
+                            style: theme.textTheme.bodyLarge,
+                            textAlignVertical: TextAlignVertical.center,
                           ),
                         ),
                       ),
                     ),
-
-                    // Temizle Butonu
                     if (_isSearchExpanded && _searchController.text.isNotEmpty)
                       Positioned(
                         right: 4, top: 0, bottom: 0,
                         child: IconButton(
-                          icon: const Icon(Icons.clear, size: 20), tooltip: 'Metni Temizle',
+                          icon: const Icon(Icons.clear, size: 20),
+                          tooltip: l10n.clearText,
                           onPressed: _removeTextFilter,
                         ),
                       ),
@@ -483,46 +499,27 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ),
           ),
-
           const SizedBox(width: 5),
-
-          // Filtre Butonu
-          IconButton(
-            icon: Icon( Icons.filter_list_rounded,
-                weight: 900, size: 27,
-
-                color: state.isMoodFiltered ? theme.colorScheme.primary :
-                theme.colorScheme.onSurfaceVariant),
-            tooltip: 'Filtrele (Ruh Hali)',
-            onPressed: _openFilterSheet,
-          ),
-          // Filtre Butonu (TextButton olarak GÜNCELLENDİ)
           TextButton(
-            onPressed: _openFilterSheet, // Filtre sayfasını açma fonksiyonu aynı kalıyor
+            onPressed: _openFilterSheet,
             style: TextButton.styleFrom(
-              // Filtre aktifse birincil tema rengini, değilse daha soluk bir renk kullan
               foregroundColor: state.isMoodFiltered
                   ? theme.colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
-              // Butonun iç boşluğunu ayarlayarak hizalamayı iyileştirebilirsiniz
               padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              // Metin stilini biraz daha belirgin yapabilirsiniz
               textStyle: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600, // Kalınlık ayarı
-                letterSpacing: 0.5, // Harf aralığı (isteğe bağlı)
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
-              // İsteğe bağlı: Tıklama efektinin şekli
-              // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ).copyWith(
-              // Tıklama efektinin rengini de ayarlayabilirsiniz
               overlayColor: WidgetStateProperty.all(
-                  (state.isMoodFiltered
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant
-                  ).withOpacity(0.1) // Hafif bir tıklama efekti
+                (state.isMoodFiltered
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant
+                ).withOpacity(0.1)
               ),
             ),
-            child: const Text('Filtrele'), // Butonun üzerindeki yazı
+            child: Text(l10n.filter),
           ),
         ],
       ),
@@ -531,32 +528,35 @@ class _CalendarPageState extends State<CalendarPage> {
 
   /// Aktif filtreleri gösteren Chip listesini oluşturur.
   Widget _buildActiveFiltersDisplay(BuildContext context, JournalLoadSuccess state, ThemeData theme) {
-    if (!state.isFiltered) { return const SizedBox.shrink(); } // Filtre yoksa gösterme
+    final l10n = AppLocalizations.of(context)!;
+    if (!state.isFiltered) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.only(top: 0, bottom: 6.0, left: 16, right: 16),
       child: Wrap(
-        alignment: WrapAlignment.start, crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 6.0, runSpacing: 0.0, // runSpacing azaltıldı
+        alignment: WrapAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6.0,
+        runSpacing: 0.0,
         children: [
-          // Metin Filtresi Chip'i
           if (state.isTextFiltered)
             Chip(
               label: Text("'${state.currentFilterQuery!}'", style: theme.textTheme.labelSmall),
-              padding: const EdgeInsets.symmetric(horizontal: 4), visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               deleteIcon: const Icon(Icons.cancel_rounded, size: 14),
-              onDeleted: _removeTextFilter, // Metin filtresini kaldırır
+              onDeleted: _removeTextFilter,
             ),
-          // Mood Filtresi Chip'leri
           if (state.isMoodFiltered)
             ...(state.currentMoodFilters!).map((mood) => Chip(
               avatar: FaIcon(mood.icon, size: 13, color: mood.getColor(theme.colorScheme)),
               label: Text(mood.displayName, style: theme.textTheme.labelSmall),
-              padding: const EdgeInsets.symmetric(horizontal: 4), visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               deleteIcon: const Icon(Icons.cancel_rounded, size: 14),
-              onDeleted: () => _removeMoodFilter(mood), // İlgili mood filtresini kaldırır
+              onDeleted: () => _removeMoodFilter(mood),
             )),
         ],
       ),
@@ -581,40 +581,51 @@ class _CalendarPageState extends State<CalendarPage> {
 
   /// Listenin içeriğini (ListView veya boş mesaj) oluşturur.
   Widget _buildEntryListContent(BuildContext context, List<JournalEntry> entries, bool isFiltered, ThemeData theme, double bottomPadding) {
+    final l10n = AppLocalizations.of(context)!;
     if (entries.isEmpty) {
       // Boş Durum Mesajı
-      return Center( child: Padding(
+      return Center(
+        child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Column( mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-        Icon(isFiltered ? Icons.filter_alt_off_outlined :
-        Icons.menu_book_outlined, size: 55,
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)),
-        const SizedBox(height: 16),
-        Text(isFiltered ? 'Filtreyle eşleşen kayıt bulunamadı.' : 'Henüz günlük kaydınız bulunmuyor.', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        // Genel temizle butonu kaldırıldı, çünkü tek tek temizleme var
-      ])));
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isFiltered ? Icons.filter_alt_off_outlined : Icons.menu_book_outlined,
+                size: 55,
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isFiltered ? l10n.noMatchingRecords : l10n.noJournalEntries,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)
+              ),
+            ]
+          )
+        )
+      );
     }
     final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalListPadding = screenWidth * 0.10;    return Scrollbar(
+    final horizontalListPadding = screenWidth * 0.10;
+
+    return Scrollbar(
+      controller: _listScrollController,
+      thumbVisibility: true,
+      child: ListView.builder(
         controller: _listScrollController,
-        thumbVisibility: true,
-        child: ListView.builder(
-            controller: _listScrollController,
-            // YATAY PADDING GÜNCELLENDİ
-            padding: EdgeInsets.only(
-                left: horizontalListPadding, // Sol boşluk
-                right: horizontalListPadding, // Sağ boşluk
-                top: 4.0,
-                bottom: bottomPadding
-            ),
-            itemCount: entries.length,
-            itemBuilder: (context, index) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3.0),
-                // _buildJournalEntryCard çağrısı aynı kalır
-                child: _buildJournalEntryCard(context, entries[index], theme)
-            )
+        padding: EdgeInsets.only(
+          left: horizontalListPadding,
+          right: horizontalListPadding,
+          top: 4.0,
+          bottom: bottomPadding
+        ),
+        itemCount: entries.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3.0),
+          child: _buildJournalEntryCard(context, entries[index], theme)
         )
+      )
     );
   }
 
@@ -719,11 +730,44 @@ class _CalendarPageState extends State<CalendarPage> {
 
   /// Sekme 2: Takvim görünümünü oluşturur.
   Widget _buildCalendarView(BuildContext context, List<JournalEntry> allEntries, ThemeData theme, double bottomPadding) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     // Stiller (HeaderStyle, CalendarStyle)
-    final headerStyle = HeaderStyle(formatButtonVisible: true, formatButtonShowsNext: false, formatButtonTextStyle: textTheme.labelMedium!.copyWith(color: colorScheme.primary), formatButtonDecoration: BoxDecoration(border: Border.all(color: colorScheme.primary.withOpacity(0.5)), borderRadius: BorderRadius.circular(12.0)), titleCentered: true, titleTextStyle: textTheme.titleLarge ?? const TextStyle(), leftChevronIcon: Icon(Icons.chevron_left, color: colorScheme.onSurface), rightChevronIcon: Icon(Icons.chevron_right, color: colorScheme.onSurface));
-    final calendarStyle = CalendarStyle(todayDecoration: BoxDecoration(border: Border.all(color: colorScheme.primary, width: 1.5), shape: BoxShape.circle), todayTextStyle: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold), selectedDecoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle), selectedTextStyle: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold), weekendTextStyle: TextStyle(color: colorScheme.tertiary.withOpacity(0.8)), markersAlignment: Alignment.bottomCenter, markersOffset: const PositionedOffset(bottom: 5), markerDecoration: BoxDecoration(color: colorScheme.secondary, shape: BoxShape.circle), markersMaxCount: 1, outsideDaysVisible: false);
+    final headerStyle = HeaderStyle(
+      formatButtonVisible: true,
+      formatButtonShowsNext: false,
+      formatButtonTextStyle: textTheme.labelMedium!.copyWith(color: colorScheme.primary),
+      formatButtonDecoration: BoxDecoration(
+        border: Border.all(color: colorScheme.primary.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(12.0)
+      ),
+      titleCentered: true,
+      titleTextStyle: textTheme.titleLarge ?? const TextStyle(),
+      leftChevronIcon: Icon(Icons.chevron_left, color: colorScheme.onSurface),
+      rightChevronIcon: Icon(Icons.chevron_right, color: colorScheme.onSurface)
+    );
+    final calendarStyle = CalendarStyle(
+      todayDecoration: BoxDecoration(
+        border: Border.all(color: colorScheme.primary, width: 1.5),
+        shape: BoxShape.circle
+      ),
+      todayTextStyle: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+      selectedDecoration: BoxDecoration(
+        color: colorScheme.primary,
+        shape: BoxShape.circle
+      ),
+      selectedTextStyle: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.bold),
+      weekendTextStyle: TextStyle(color: colorScheme.tertiary.withOpacity(0.8)),
+      markersAlignment: Alignment.bottomCenter,
+      markersOffset: const PositionedOffset(bottom: 5),
+      markerDecoration: BoxDecoration(
+        color: colorScheme.secondary,
+        shape: BoxShape.circle
+      ),
+      markersMaxCount: 1,
+      outsideDaysVisible: false
+    );
 
     return Scrollbar(
       controller: _calendarScrollController,
@@ -736,7 +780,16 @@ class _CalendarPageState extends State<CalendarPage> {
           behavior: HitTestBehavior.opaque, // Takvimin boş alanlarına dokunmayı yakala
           onTap: _dismissSearchIfApplicable,
           child: TableCalendar<JournalEntry>(
-            locale: 'tr_TR', firstDay: DateTime.utc(2020, 1, 1), lastDay: DateTime.utc(DateTime.now().year + 5, 12, 31), focusedDay: _focusedDay, calendarFormat: _calendarFormat, availableCalendarFormats: const { CalendarFormat.month: 'Aylık', CalendarFormat.twoWeeks: '2 Hafta', CalendarFormat.week: 'Haftalık'},
+            locale: l10n.localeName,
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(DateTime.now().year + 5, 12, 31),
+            focusedDay: _focusedDay,
+            calendarFormat: _calendarFormat,
+            availableCalendarFormats: {
+              CalendarFormat.month: l10n.monthly,
+              CalendarFormat.twoWeeks: l10n.twoWeeks,
+              CalendarFormat.week: l10n.weekly,
+            },
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) => _handleDaySelected(selectedDay, focusedDay, allEntries), // Yardımcı metodu çağır
             headerStyle: headerStyle, calendarStyle: calendarStyle,

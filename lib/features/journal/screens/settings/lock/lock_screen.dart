@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mindvault/features/journal/bloc_auth/auth_bloc.dart';
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
 import 'package:pinput/pinput.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LockScreen extends StatefulWidget {
   const LockScreen({super.key});
@@ -93,6 +94,7 @@ class _LockScreenState extends State<LockScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // onPopInvoked yerine PopScope kullanımı
     return PopScope(
@@ -116,7 +118,7 @@ class _LockScreenState extends State<LockScreen> {
                   HapticFeedback.heavyImpact();
                   messenger?.showSnackBar(
                     SnackBar(
-                      content: Text(state.message),
+                      content: Text(l10n.incorrectPin),
                       backgroundColor: colorScheme.error,
                       duration: const Duration(seconds: 2),
                     ),
@@ -143,10 +145,10 @@ class _LockScreenState extends State<LockScreen> {
                         children: [
                           Icon( Icons.lock_person_rounded, size: 55, color: colorScheme.primary), // Boyut ayarlandı
                           const SizedBox(height: 18),
-                          Text( 'Güvenlik Kilidi', style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
+                          Text( l10n.securityLock, style: textTheme.headlineSmall?.copyWith(color: colorScheme.primary)),
                           const SizedBox(height: 8),
                           Text(
-                            'Devam etmek için ${canCheckBiometrics && isBiometricsEnabled ? "PIN girin veya biyometriği kullanın" : "PIN kodunuzu girin"}.',
+                            l10n.enterPinToContinue,
                             textAlign: TextAlign.center,
                             style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
@@ -182,7 +184,7 @@ class _LockScreenState extends State<LockScreen> {
                               duration: const Duration(milliseconds: 300),
                               child: IconButton(
                                 iconSize: 50, // Boyut ayarlandı
-                                tooltip: isBiometricsEnabled ? 'Biyometrik ile Aç' : 'Biyometrik Etkin Değil',
+                                tooltip: isBiometricsEnabled ? l10n.useBiometrics : l10n.biometricLogin,
                                 onPressed: isBiometricsEnabled ? _tryBiometrics : null,
                                 icon: Icon(
                                   Icons.fingerprint_rounded,

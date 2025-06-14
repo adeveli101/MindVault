@@ -53,15 +53,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onUnlockWithPin(
       UnlockWithPin event, Emitter<AuthState> emit) async {
-    // print("AuthBloc: Attempting unlock with PIN..."); // Debug
     emit(AuthInProgress());
     try {
       final bool success = await _authService.verifyPin(event.pin);
       if (success) {
-        // print("AuthBloc: PIN correct. Emitting AuthUnlocked."); // Debug
         emit(AuthUnlocked());
       } else {
-        // print("AuthBloc: PIN incorrect. Emitting AuthFailure then AuthLocked."); // Debug
         emit(const AuthFailure("Girilen PIN hatalı."));
         // Hata gösterildikten kısa süre sonra tekrar kilitli state'e dön
         await Future.delayed(const Duration(milliseconds: 800));
@@ -71,10 +68,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthLocked(canCheckBiometrics: canCheck, biometricsEnabled: isEnabled));
       }
     } catch (e) {
-      // print("AuthBloc: Error during UnlockWithPin: $e"); // Debug
-      emit(AuthFailure("PIN doğrulaması sırasında hata oluştu: ${e.toString()}"));
+      // Rate limiting hatası veya diğer hatalar
+      emit(AuthFailure(e.toString()));
       await Future.delayed(const Duration(milliseconds: 800));
-      add(CheckAuthStatus()); // Hata sonrası durumu tekrar kontrol et
+      add(CheckAuthStatus());
     }
   }
 

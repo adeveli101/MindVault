@@ -2,16 +2,20 @@
 // Tema stilini ve boyutunu ayarlama ekranı.
 // ExploreScreen'den gelen başlangıç stilini kabul eder ve uygular.
 
+// ignore_for_file: unused_local_variable
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-// Gerekli importlar (Yolları kontrol edin)
-import 'package:mindvault/features/journal/screens/explore/explore_screen.dart'; // Tüm temaları görme ekranı
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mindvault/features/journal/screens/themes/theme_config.dart';
 import 'package:mindvault/features/journal/screens/themes/app_theme_data.dart';
-import 'package:mindvault/features/journal/screens/themes/theme_config.dart'; // Tema yapılandırması
-import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart'; // Tema tipleri enum'ı
+import 'package:mindvault/features/journal/screens/themes/notebook_theme_type.dart';
+import 'package:mindvault/features/journal/subscription/subscription_bloc.dart';
+import 'package:stacked_themes/stacked_themes.dart';
+
+import 'package:mindvault/features/journal/screens/explore/explore_screen.dart'; // Tüm temaları görme ekranı
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart'; // Standart arka plan
-import 'package:stacked_themes/stacked_themes.dart'; // Tema yönetimi paketi
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SettingsThemeScreen extends StatefulWidget {
   // ***** YENİ: Başlangıç stilini almak için isteğe bağlı parametre *****
@@ -34,10 +38,12 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   bool _showLeftArrow = false; // Stil listesi için sol ok göster/gizle
   bool _showRightArrow = true; // Stil listesi için sağ ok göster/gizle
   bool _isLoading = true; // Başlangıçta tema bilgileri yüklenirken
+  bool _hasUnsavedChanges = false; // Yeni: Kaydedilmemiş değişiklik var mı?
+  late int _previewThemeIndex; // Yeni: Önizleme için tema index'i
 
   // --- UI Sabitleri ---
-  final double _themeCardHeight = 180; // Stil kartlarının yüksekliği
-  final double _viewportFraction = 0.5; // PageView'da bir seferde görünen kart oranı
+  late double _viewportFraction; // PageView'da bir seferde görünen kart oranı
+  late double _themeCardHeight; // Stil kartlarının yüksekliği
 
   // --- Veri ---
   late final List<AppThemeData> baseThemes; // Gösterilecek temel (Medium) tema listesi
@@ -46,8 +52,14 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   @override
   void initState() {
     super.initState();
-    // Temaları yükle (sadece medium boyutluları alır)
-    baseThemes = ThemeConfig.getBaseThemeRepresentations();
+    _isLoading = true;
+    _hasUnsavedChanges = false;
+    _viewportFraction = 0.85;
+    _themeCardHeight = 180.0;
+
+    // Temaları yükle (kullanıcının premium durumuna göre)
+    final isPremium = false; // TODO: Premium durumunu al
+    baseThemes = ThemeConfig.getAvailableThemes(isPremium);
 
     // Eğer tema listesi boşsa (beklenmedik durum), hata göster ve geri dön
     if (baseThemes.isEmpty) {
@@ -55,36 +67,32 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tema listesi yüklenemedi.")));
-          Navigator.pop(context); // Geri dön
+          Navigator.pop(context);
         }
       });
-      _isLoading = false; // Yükleme bitti (başarısız)
-      return; // initState'ten çık
+      _isLoading = false;
+      return;
     }
 
-    // Başlangıç state'ini ayarla (gelen initialBaseStyle'ı dikkate alarak)
+    // Başlangıç state'ini ayarla
     _initializeState();
+    _previewThemeIndex = _currentThemeIndex; // Başlangıçta önizleme = mevcut tema
 
-    // PageView başlangıç sayfasını, seçili stile göre ayarla
+    // PageView başlangıç sayfasını ayarla
     final initialPageIndex = baseThemes.indexWhere((theme) => theme.type == _selectedBaseStyle);
     _pageController = PageController(
-      viewportFraction: _viewportFraction, // Kenardaki kartların bir kısmı görünür
-      initialPage: initialPageIndex != -1 ? initialPageIndex : 0, // Bulunamazsa ilk sayfa
+      viewportFraction: _viewportFraction,
+      initialPage: initialPageIndex != -1 ? initialPageIndex : 0,
     );
 
-    // PageView kaydırıldıkça okları güncellemek için listener ekle
     _pageController.addListener(_updateScrollArrows);
-    // İlk build sonrası ok durumunu ve gerekirse PageView pozisyonunu ayarla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollArrows();
-      // Eğer Explore'dan gelindiyse ve PageView hemen scroll olmadıysa,
-      // küçük bir gecikme ile tekrar scroll deneyebiliriz.
       if (widget.initialBaseStyle != null) {
         Future.delayed(const Duration(milliseconds: 50), () => _scrollToSelectedStyle());
       }
     });
 
-    // Yükleme tamamlandı
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -92,7 +100,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
 
   @override
   void dispose() {
-    _pageController.removeListener(_updateScrollArrows);
+    _restorePreviousTheme();
     _pageController.dispose();
     super.dispose();
   }
@@ -177,7 +185,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
     }
   }
 
-  /// Seçilen stil ve boyuta göre temayı bulur ve uygular.
+  /// Seçilen stil ve boyuta göre temayı bulur ve önizleme olarak uygular.
   void _updateTheme() {
     // Seçili stil ve boyuta karşılık gelen tam tema index'ini bul
     final newIndex = ThemeConfig.findThemeIndexByStyleAndSize(
@@ -187,20 +195,86 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
     if (newIndex != -1) {
       final themeManager = getThemeManager(context);
       final currentAppliedIndex = themeManager.selectedThemeIndex ?? 0;
-      // Sadece mevcut temadan farklıysa yeni temayı uygula
+      
+      // Sadece mevcut temadan farklıysa yeni temayı önizleme olarak uygula
       if (newIndex != currentAppliedIndex) {
+        // Premium tema kontrolü
+        final selectedTheme = ThemeConfig.getAppThemeDataByIndex(newIndex);
+        final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                         (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
+        
+        if (!selectedTheme.isFree && !isPremium) {
+          // Premium tema seçildi, kullanıcıya bilgi ver
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${ThemeConfig.getThemeDisplayName(_selectedBaseStyle)} teması için Premium üyelik gereklidir.'),
+              action: SnackBarAction(
+                label: 'Premium\'a Geç',
+                onPressed: () {
+                  // Premium ekranına yönlendir
+                  Navigator.pushNamed(context, '/subscription');
+                },
+              ),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return; // Temayı uygulama
+        }
+        
+        // Önizleme için temayı uygula
         themeManager.selectThemeAtIndex(newIndex);
         if (mounted) {
-          // State'deki index'i de güncelle (UI tutarlılığı için)
-          setState(() => _currentThemeIndex = newIndex);
+          setState(() {
+            _previewThemeIndex = newIndex;
+            _hasUnsavedChanges = true;
+          });
         }
-        if (kDebugMode) print("Tema güncellendi: Index=$newIndex, Style=$_selectedBaseStyle, Size=$_selectedSize");
+        if (kDebugMode) print("Tema önizlemesi güncellendi: Index=$newIndex, Style=$_selectedBaseStyle, Size=$_selectedSize");
       }
     } else {
       // Index bulunamazsa (ThemeConfig hatası olabilir)
       if (kDebugMode) print("Uyarı: _updateTheme içinde tema index'i bulunamadı! Style=$_selectedBaseStyle, Size=$_selectedSize");
-      // Kullanıcıya hata mesajı gösterilebilir
-      // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Seçilen tema kombinasyonu bulunamadı.")));
+    }
+  }
+
+  /// Seçilen temayı kalıcı olarak uygular
+  void _applySelectedTheme() {
+    final themeManager = getThemeManager(context);
+    final selectedTheme = ThemeConfig.getAppThemeDataByIndex(_previewThemeIndex);
+    final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                     (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
+
+    if (!selectedTheme.isFree && !isPremium) {
+      // Premium tema seçildi, kullanıcıya bilgi ver
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${ThemeConfig.getThemeDisplayName(_selectedBaseStyle)} teması için Premium üyelik gereklidir.'),
+          action: SnackBarAction(
+            label: 'Premium\'a Geç',
+            onPressed: () {
+              // Premium ekranına yönlendir
+              Navigator.pushNamed(context, '/subscription');
+            },
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _currentThemeIndex = _previewThemeIndex;
+      _hasUnsavedChanges = false;
+    });
+  }
+
+  /// Ekrandan çıkarken eski temaya geri döner
+  void _restorePreviousTheme() {
+    if (_hasUnsavedChanges) {
+      final themeManager = getThemeManager(context);
+      themeManager.selectThemeAtIndex(_currentThemeIndex);
     }
   }
 
@@ -220,56 +294,132 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   }
 
   /// Tema tipinden (enum) okunabilir bir stil adı (String) döndürür.
+  // ignore: unused_element
   String _getBaseStyleName(NotebookThemeType type) {
-    // ... (Öncekiyle aynı) ...
-    String typeName = type.toString().split('.').last; typeName = typeName.replaceAll('Small', '').replaceAll('Medium', '').replaceAll('Large', ''); switch (typeName) { case 'defaultLight': return "Aydınlık"; case 'defaultDark': return "Altın Vurgu"; case 'classicLeather': return "Deri"; case 'antique': return "Antika"; case 'blueprint': return "Mimari"; case 'scrapbook': return "Karalama"; case 'japanese': return "Minimalist"; case 'watercolor': return "Suluboya"; default: return typeName; }
+    String typeName = type.toString().split('.').last;
+    typeName = typeName
+        .replaceAll('Small', '')
+        .replaceAll('Medium', '')
+        .replaceAll('Large', '');
+
+    switch (typeName) {
+      case 'defaultLight':
+        return "Aydınlık";
+      case 'defaultDark':
+        return "Altın Vurgu";
+      case 'classicLeather':
+        return "Deri";
+      case 'antique':
+        return "Antika";
+      case 'blueprint':
+        return "Mimari";
+      case 'scrapbook':
+        return "Karalama";
+      case 'japanese':
+        return "Minimalist";
+      case 'watercolor':
+        return "Suluboya";
+      default:
+        return typeName; // Eşleşme yoksa enum ismini döndür
+    }
   }
 
   // --- Ana Build Metodu ---
   @override
   Widget build(BuildContext context) {
-    // Yükleme veya hata durumu
-    if (_isLoading || baseThemes.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
-    }
-
-    // Mevcut tema verileri
-    final AppThemeData currentAppliedTheme = ThemeConfig.getAppThemeDataByIndex(_currentThemeIndex);
-    final Color primaryColor = currentAppliedTheme.materialTheme.colorScheme.primary;
-    final TextStyle titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(color: primaryColor, fontWeight: FontWeight.bold,) ?? const TextStyle();
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    // Ana Scaffold
-    return ThemedBackground( // Arka plan
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar( // AppBar
-          title: const Text("Görünüm Ayarları"),
-          centerTitle: true, elevation: 0, backgroundColor: Colors.transparent,
-          leading: BackButton(onPressed: () => Navigator.pop(context)), // Geri butonu
-        ),
-        body: SafeArea( // Sistem UI çakışmalarını önle
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: SingleChildScrollView( // İçerik taşarsa kaydırılabilir yap
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch, // Öğeleri genişlet
-                children: [
-                  const SizedBox(height: 16),
-                  _buildHeader(titleStyle), // "Tema Stili" başlığı
-                  const SizedBox(height: 8),
-                  _buildThemeSelector(context, screenWidth), // Yatay stil seçici (PageView)
-                  const SizedBox(height: 16),
-                  _buildSeeAllButton(context, primaryColor), // "Tüm Temaları Gör" butonu
-                  const SizedBox(height: 24),
-                  Center(child: Text('Yazı Tipi Boyutu', style: titleStyle)), // "Yazı Tipi Boyutu" başlığı
-                  const SizedBox(height: 16),
-                  _buildSizeSelectorSection(context, currentAppliedTheme), // Boyut seçici (SegmentedButton)
-                  const SizedBox(height: 24),
-                  _buildPreviewSection(context, titleStyle), // "Önizleme" başlığı ve alanı
-                  const SizedBox(height: 16),
-                ],
-              ),
+    final l10n = AppLocalizations.of(context)!;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) {
+          _restorePreviousTheme();
+        }
+      },
+      child: ThemedBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(l10n.theme),
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: BackButton(
+              onPressed: () {
+                _restorePreviousTheme();
+                Navigator.pop(context);
+              },
+            ),
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 16),
+                                _buildHeader(Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ) ?? const TextStyle()),
+                                const SizedBox(height: 8),
+                                _buildThemeSelector(context, MediaQuery.of(context).size.width),
+                                const SizedBox(height: 16),
+                                _buildSeeAllButton(context, Theme.of(context).colorScheme.primary),
+                                const SizedBox(height: 24),
+                                Center(
+                                  child: Text(
+                                    l10n.fontSize,
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ) ?? const TextStyle(),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildSizeSelectorSection(
+                                  context,
+                                  ThemeConfig.getAppThemeDataByIndex(_currentThemeIndex),
+                                ),
+                                const SizedBox(height: 24),
+                                _buildPreviewSection(
+                                  context,
+                                  Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ) ?? const TextStyle(),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+                // Uygula butonu
+                if (_hasUnsavedChanges)
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: _applySelectedTheme,
+                      icon: const Icon(Icons.check),
+                      label: Text(l10n.apply),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -283,7 +433,8 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
 
   /// Bölüm 1: Başlığı Oluşturur
   Widget _buildHeader(TextStyle titleStyle) {
-    return Center(child: Text('Tema Stili', style: titleStyle));
+    final l10n = AppLocalizations.of(context)!;
+    return Center(child: Text(l10n.theme, style: titleStyle));
   }
 
   /// Bölüm 2: Ortalanmış, 3/4 Genişlikte PageView ve Okları Oluşturur
@@ -365,23 +516,29 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
     final themeType = theme.type;
     final bool isSelected = themeType == _selectedBaseStyle;
     final bool isLocked = !theme.isFree;
+    final isPremium = context.read<SubscriptionBloc>().state is SubscriptionLoaded && 
+                     (context.read<SubscriptionBloc>().state as SubscriptionLoaded).isSubscribed;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: GestureDetector(
-        onTap: isLocked
-            ? () { if (kDebugMode) {
-              print("Kilitli tema tıklandı: ${theme.name}");
-            } }
+        onTap: isLocked && !isPremium
+            ? () {
+                if (kDebugMode) {
+                  print("Kilitli tema tıklandı: ${theme.name}");
+                }
+                // Premium ekranına yönlendir
+                Navigator.pushNamed(context, '/subscription');
+              }
             : () {
-          if (!isSelected) {
-            setState(() => _selectedBaseStyle = themeType);
-            _updateTheme();
-          }
-          _animateToPage(index);
-        },
+                if (!isSelected) {
+                  setState(() => _selectedBaseStyle = themeType);
+                  _updateTheme();
+                }
+                _animateToPage(index);
+              },
         child: Opacity(
-          opacity: isLocked && !isSelected ? 0.6 : 1.0,
+          opacity: isLocked && !isPremium && !isSelected ? 0.6 : 1.0,
           child: SizedBox(
             height: _themeCardHeight,
             child: Container(
@@ -399,108 +556,58 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
                     ? [ BoxShadow( color: Theme.of(context).colorScheme.primary.withOpacity(0.4), blurRadius: 8, spreadRadius: 1, offset: const Offset(0, 2)) ]
                     : [ BoxShadow( color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 1)) ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Stack(
                 children: [
-                  // Resim, Preview Butonu ve Kilit İkonu Alanı
-                  Stack(
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 3 / 4,
-                        child: _buildMiniThemePreview(context, theme),
-                      ),
-                      // Preview Butonu (Sol Üst)
-                      Positioned(
-                        top: 4, left: 4,
-                        child: Container(
-                          decoration: BoxDecoration( color: Colors.black.withOpacity(0.5), shape: BoxShape.circle,),
-                          child: Material(
-                            color: Colors.transparent, shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('${theme.name} önizlemesi açılacak...')), );
-                                if (kDebugMode) {
-                                  print("Önizleme butonu tıklandı: ${theme.name}");
-                                }
-                              },
-                              child: Padding( padding: const EdgeInsets.all(5.0), child: Icon( Icons.visibility_outlined, size: 18, color: Colors.white.withOpacity(0.9),), ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Kilit İkonu (Sağ Üst - Sadece kilitliyse)
-                      if (isLocked)
-                        Positioned(
-                          top: 4, right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration( color: Colors.black.withOpacity(0.6), shape: BoxShape.circle,),
-                            child: Icon( Icons.lock, size: 16, color: Colors.white.withOpacity(0.9), ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // İsim Alanı
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Text(
-                      _getBaseStyleName(theme.type),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith( fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: Theme.of(context).colorScheme.onSurface, ),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                  // Tema önizleme resmi
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      theme.backgroundAssetPath,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
                     ),
                   ),
+                  // Kilit ikonu (eğer kilitli ise ve premium değilse)
+                  if (isLocked && !isPremium)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  // Seçili ikonu
+                  if (isSelected)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Mini tema kartı içindeki görsel önizlemeyi oluşturur
-  Widget _buildMiniThemePreview(BuildContext context, AppThemeData theme) {
-    final miniThemeData = theme.materialTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: miniThemeData.colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(9),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              theme.backgroundAssetPath,
-              fit: BoxFit.fill, // Önceki istek üzerine fill yapıldı
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  size: 24,
-                  color: miniThemeData.colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withOpacity(0.0),
-                    Colors.black.withOpacity(0.0),
-                    miniThemeData.colorScheme.primary.withOpacity(0.25)
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.6, 1.0],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -541,32 +648,26 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   }
 
   Widget _buildSeeAllButton(BuildContext context, Color primaryColor) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: OutlinedButton.icon(
         icon: const Icon(Icons.collections_bookmark_outlined, size: 18),
-        label: const Text('Tüm Temaları Gör'),
-        // ***** DEĞİŞİKLİK BURADA BAŞLIYOR *****
-        onPressed: () async { // Fonksiyonu async yap
-          // ExploreScreen'e git ve geri dönecek sonucu bekle (NotebookThemeType?)
+        label: Text(l10n.seeAllThemes),
+        onPressed: () async {
           final selectedStyleResult = await Navigator.push<NotebookThemeType?>(
             context,
             MaterialPageRoute(builder: (_) => const ExploreScreen()),
           );
 
-          // Geri dönüldüğünde ve bir sonuç varsa (kullanıcı bir stil seçtiyse)
           if (selectedStyleResult != null && mounted) {
             if (kDebugMode) { print("ExploreScreen'den seçilen stil: $selectedStyleResult"); }
-            // SettingsThemeScreen'in state'ini güncelle
             setState(() {
-              // Seçilen temel stili (_selectedBaseStyle) güncelle
               _selectedBaseStyle = selectedStyleResult;
             });
-            // Yeni seçilen stil ve mevcut boyut (_selectedSize) ile temayı uygula
-            _updateTheme(); // Temayı güncelleyen metodu çağır
+            _updateTheme();
           }
-          // ***** DEĞİŞİKLİK BURADA BİTİYOR *****
         },
-        style: OutlinedButton.styleFrom( /* ... mevcut stil ayarları ... */
+        style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
           side: BorderSide(color: primaryColor.withOpacity(0.5)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -579,6 +680,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   /// Bölüm 4: Boyut Seçici (SegmentedButton) Bölümünü Oluşturur
   Widget _buildSizeSelectorSection(
       BuildContext context, AppThemeData currentTheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: _buildSizeSelector(context, currentTheme),
@@ -587,18 +689,19 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
 
   /// SegmentedButton widget'ını oluşturur
   Widget _buildSizeSelector(BuildContext context, AppThemeData currentTheme) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = currentTheme.materialTheme.colorScheme;
-    const segments = <ButtonSegment<ThemeSize>>[
-      ButtonSegment<ThemeSize>(value: ThemeSize.small, label: Text('Küçük')),
-      ButtonSegment<ThemeSize>(value: ThemeSize.medium, label: Text('Orta')),
-      ButtonSegment<ThemeSize>(value: ThemeSize.large, label: Text('Büyük')),
+    final segments = <ButtonSegment<ThemeSize>>[
+      ButtonSegment<ThemeSize>(value: ThemeSize.small, label: Text(l10n.small)),
+      ButtonSegment<ThemeSize>(value: ThemeSize.medium, label: Text(l10n.medium)),
+      ButtonSegment<ThemeSize>(value: ThemeSize.large, label: Text(l10n.large)),
     ];
     return Center(
       child: SegmentedButton<ThemeSize>(
         segments: segments,
         selected: <ThemeSize>{_selectedSize},
         onSelectionChanged: (Set<ThemeSize> newSelection) {
-          if (mounted) { // setState için kontrol
+          if (mounted) {
             setState(() => _selectedSize = newSelection.first);
           }
           _updateTheme();
@@ -626,9 +729,10 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
 
   /// Bölüm 5: Önizleme Başlığı ve Alanını Oluşturur
   Widget _buildPreviewSection(BuildContext context, TextStyle titleStyle) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
-        Center(child: Text('Önizleme', style: titleStyle)),
+        Center(child: Text(l10n.preview, style: titleStyle)),
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -640,7 +744,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
 
   /// Önizleme Alanını (Arka plansız) Oluşturur
   Widget _buildPreviewArea(BuildContext context) {
-    // Mevcut temayı kullanarak renk ve stil almak daha doğru
+    final l10n = AppLocalizations.of(context)!;
     final currentTheme = Theme.of(context);
     final textTheme = currentTheme.textTheme;
 
@@ -650,33 +754,25 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Örnek Başlık Yazısı',
+            l10n.sampleTitle,
             textAlign: TextAlign.center,
             style: textTheme.headlineSmall?.copyWith(
-              // color: colorScheme.onSurface, // Renk zaten temadan gelir
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Bu alandaki metinler, seçtiğiniz tema stili ve '
-                '"${_selectedSize.toString().split('.').last}" '
-                'yazı tipi boyutuyla görüntülenmektedir.',
+            l10n.sampleText(_selectedSize.toString().split('.').last),
             textAlign: TextAlign.center,
             style: textTheme.bodyLarge?.copyWith(
               height: 1.6,
-              // color: colorScheme.onSurface, // Renk zaten temadan gelir
             ),
           ),
           const SizedBox(height: 24),
           Center(
             child: ElevatedButton(
               onPressed: () {},
-              // Stil temadan otomatik gelir
-              // style: ElevatedButton.styleFrom(
-              //   padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              // ),
-              child: const Text('Örnek Buton'),
+              child: Text(l10n.sampleButton),
             ),
           ),
         ],

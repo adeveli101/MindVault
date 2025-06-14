@@ -1,20 +1,27 @@
 // lib/features/journal/screens/entry/add_edit_journal_screen.dart
 // Etiket UI Chip'lere dönüştürüldü, Kaydedilmemiş Değişiklik Uyarısı eklendi.
 
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_local_variable
 
 // listEquals için
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart'; // listEquals için
+import 'dart:io';
 
 // BLoC, Model ve Widget yolları
 import 'package:mindvault/features/journal/bloc/journal_bloc.dart';
 import 'package:mindvault/features/journal/model/journal_entry.dart';
+import 'package:mindvault/features/journal/screens/drawing_screen.dart';
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
 import 'package:mindvault/features/journal/screens/widgets/mood_selector_widget.dart';
+import 'package:mindvault/features/journal/services/drawing_service.dart';
+import 'package:mindvault/features/journal/services/markdown_service.dart';
+import 'package:mindvault/features/journal/services/media_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 
 class AddEditJournalScreen extends StatefulWidget {
   final JournalEntry? existingEntry;
@@ -46,6 +53,16 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
   Mood? _initialMood;
   bool _hasUnsavedChanges = false; // Değişiklik bayrağı
 
+  // Yeni servisler
+  final MediaService _mediaService = MediaService();
+  final MarkdownService _markdownService = MarkdownService();
+  final DrawingService _drawingService = DrawingService();
+
+  // Yeni state'ler
+  bool _isMarkdownMode = false;
+  List<MediaItem> _currentMediaItems = [];
+  String? _currentDrawingData;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +79,9 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
       _initialContent = widget.existingEntry!.content; // Başlangıç içeriğini kaydet
       _initialTags = List<String>.from(_currentTags); // Başlangıç etiketlerini kaydet (kopya)
       _initialMood = _selectedMood; // Başlangıç mood'unu kaydet
+      _currentMediaItems = List<MediaItem>.from(widget.existingEntry!.mediaItems ?? []);
+      _currentDrawingData = widget.existingEntry!.drawingData;
+      _isMarkdownMode = widget.existingEntry!.isMarkdown;
     } else {
       _addPageController(); // Yeni girdi için boş sayfa
       // Başlangıç değerleri varsayılanlar
@@ -170,7 +190,15 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
 
     // İçerik boş kontrolü
     if (combinedContent.isEmpty) {
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Günlük içeriği boş olamaz.', style: TextStyle(color: Theme.of(context).colorScheme.onError)), backgroundColor: Theme.of(context).colorScheme.error)); }
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.journalContentEmpty, style: TextStyle(color: Theme.of(context).colorScheme.onError)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
       return;
     }
 
@@ -179,24 +207,47 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
     // Etiketleri state listesinden al (boşsa null yap)
     final List<String>? tags = _currentTags.isNotEmpty ? List.from(_currentTags) : null;
 
-    // Kaydedilecek nesneyi oluştur
-    final entryToSave = JournalEntry(
-      id: entryId, content: combinedContent, mood: _selectedMood,
-      createdAt: _isEditing ? widget.existingEntry!.createdAt : _displayDate,
-      updatedAt: now, isFavorite: widget.existingEntry?.isFavorite ?? false,
-      tags: tags, title: widget.existingEntry?.title,
+    // Yeni veya güncellenmiş girdiyi oluştur
+    final entry = JournalEntry(
+      id: entryId,
+      content: combinedContent,
+      createdAt: _isEditing ? widget.existingEntry!.createdAt : now,
+      updatedAt: now,
+      mood: _selectedMood,
+      tags: tags,
+      isFavorite: widget.existingEntry?.isFavorite ?? false,
+      mediaItems: _currentMediaItems.isNotEmpty ? List.from(_currentMediaItems) : null,
+      drawingData: _currentDrawingData,
+      isMarkdown: _isMarkdownMode,
     );
 
-    // BLoC'u tetikle ve sayfadan çık
+    // BLoC'a kaydetme/güncelleme olayını gönder
+    if (_isEditing) {
+      context.read<JournalBloc>().add(UpdateJournalEntry(entry));
+    } else {
+      context.read<JournalBloc>().add(AddJournalEntry(entry));
+    }
+
+    // Başarılı kayıt sonrası değişiklik bayrağını sıfırla
     if (mounted) {
-      // Kaydetme başarılı olursa çıkış onayı gerekmesin diye bayrağı sıfırla
-      // (BLoC hatası durumunda bayrak true kalabilir, bu ayrı ele alınmalı)
-      setState(() { _hasUnsavedChanges = false; });
+      setState(() {
+        _hasUnsavedChanges = false;
+        _initialContent = combinedContent;
+        _initialTags = List.from(_currentTags);
+        _initialMood = _selectedMood;
+      });
+    }
 
-      if (_isEditing) { context.read<JournalBloc>().add(UpdateJournalEntry(entryToSave)); }
-      else { context.read<JournalBloc>().add(AddJournalEntry(entryToSave)); }
-
-      Navigator.of(context).pop(); // Sayfadan çık
+    // Kullanıcıya geri bildirim ver
+    if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? l10n.journalUpdated : l10n.journalSaved),
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -232,16 +283,16 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
       context: context,
       barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
       builder: (context) => AlertDialog(
-        title: const Text('Değişiklikleri Sil?'),
-        content: const Text('Yaptığınız değişiklikler kaydedilmeyecek. Çıkmak istediğinize emin misiniz?'),
+        title: Text(AppLocalizations.of(context)!.discardChangesTitle),
+        content: Text(AppLocalizations.of(context)!.discardChangesContent),
         actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false), // İptal
-            child: const Text('İptal'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true), // Onayla
-            child: Text('Değişiklikleri Sil', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(AppLocalizations.of(context)!.discard, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -250,13 +301,107 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
     return result ?? false;
   }
 
+  // Medya ekleme metodları
+  Future<void> _addImage() async {
+    final mediaItem = await _mediaService.pickImage();
+    if (mediaItem != null && mounted) {
+      setState(() {
+        _currentMediaItems.add(mediaItem);
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _addVideo() async {
+    final mediaItem = await _mediaService.pickVideo();
+    if (mediaItem != null && mounted) {
+      setState(() {
+        _currentMediaItems.add(mediaItem);
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _addAudio() async {
+    final mediaItem = await _mediaService.pickAudio();
+    if (mediaItem != null && mounted) {
+      setState(() {
+        _currentMediaItems.add(mediaItem);
+      });
+      _checkForChanges();
+    }
+  }
+
+  void _removeMediaItem(MediaItem item) {
+    setState(() {
+      _currentMediaItems.remove(item);
+    });
+    _checkForChanges();
+  }
+
+  // Çizim metodları
+  void _startDrawing() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DrawingScreen(
+          initialDrawingData: _currentDrawingData,
+          onSave: (drawingData) {
+            setState(() {
+              _currentDrawingData = drawingData;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  // Markdown metodları
+  void _toggleMarkdownMode() {
+    setState(() {
+      _isMarkdownMode = !_isMarkdownMode;
+    });
+    _checkForChanges();
+  }
+
+  // Şablon seçimi
+  void _showTemplateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.selectTemplate),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: MarkdownService.templates.length,
+            itemBuilder: (context, index) {
+              final template = MarkdownService.templates.entries.elementAt(index);
+              return ListTile(
+                title: Text(template.key),
+                onTap: () {
+                  if (_pageControllers.isNotEmpty) {
+                    _pageControllers[0].text = template.value;
+                    _checkForChanges();
+                  }
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   // --- Build Metodu ---
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
-    final String saveButtonText = _isEditing ? 'Güncelle' : 'Kaydet';
+    final l10n = AppLocalizations.of(context)!;
+    final String saveButtonText = _isEditing ? l10n.update : l10n.save;
 
     // Stiller
     final headerTextStyle = textTheme.headlineMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w500);
@@ -286,7 +431,7 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
             backgroundColor: Colors.transparent, elevation: 0,
             leading: IconButton(
                 icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.appBarTheme.iconTheme?.color ?? colorScheme.onSurface),
-                tooltip: 'Geri',
+                tooltip: l10n.back,
                 // Geri butonuna basıldığında da onay mekanizmasını tetikle
                 onPressed: () async {
                   if (await _showDiscardDialog()) { // Önce onayı al
@@ -300,44 +445,280 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // --- Üst Kısım: Tarih ---
+                // Üst Kısım: Tarih
                 Padding(
                   padding: const EdgeInsets.fromLTRB(40.0, 5.0, 40.0, 15.0),
-                  child: Text( DateFormat('dd MMMM, EEEE HH:mm', 'tr_TR').format(_displayDate), textAlign: TextAlign.center, style: headerTextStyle),
+                  child: Text(
+                    DateFormat('dd MMMM, EEEE HH:mm', l10n.localeName).format(_displayDate),
+                    textAlign: TextAlign.center,
+                    style: headerTextStyle,
+                  ),
                 ),
 
-                // --- Orta Kısım: İçerik Sayfaları ---
+                // Zengin İçerik Araç Çubuğu
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest.withOpacity(0.1),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Markdown Modu
+                        IconButton(
+                          icon: Icon(
+                            Icons.code,
+                            color: _isMarkdownMode 
+                                ? Theme.of(context).colorScheme.primary 
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.markdownMode,
+                          onPressed: _toggleMarkdownMode,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: _isMarkdownMode 
+                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                : null,
+                          ),
+                        ),
+                        // Şablonlar
+                        IconButton(
+                          icon: Icon(
+                            Icons.description_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.templates,
+                          onPressed: _showTemplateDialog,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                        ),
+                        const VerticalDivider(width: 1),
+                        // Medya Araçları
+                        IconButton(
+                          icon: Icon(
+                            Icons.image_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.addImage,
+                          onPressed: _addImage,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.videocam_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.addVideo,
+                          onPressed: _addVideo,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.audio_file_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.addAudio,
+                          onPressed: _addAudio,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                        ),
+                        const VerticalDivider(width: 1),
+                        // Çizim Aracı
+                        IconButton(
+                          icon: Icon(
+                            Icons.draw_outlined,
+                            color: _currentDrawingData != null 
+                                ? Theme.of(context).colorScheme.primary 
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          tooltip: l10n.draw,
+                          onPressed: _startDrawing,
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: _currentDrawingData != null 
+                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // İçerik Alanı
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
                     itemCount: _pageControllers.length,
-                    onPageChanged: (index) {
-                      // Sayfa değişiminde odak kaybolursa değişiklik kontrolü yap
-                      // Bu, çoklu sayfa içeriği varsa önemlidir.
-                      // FocusScope.of(context).unfocus();
-                      _checkForChanges();
-                      // Göstergeyi güncellemek için setState çağırılabilir (SmoothPageIndicator için)
-                      setState(() {});
-                    },
                     itemBuilder: (context, index) {
                       return Padding(
-                        padding: const EdgeInsets.fromLTRB(40.0, 0.0, 40.0, 10.0),
-                        child: TextFormField(
-                          controller: _pageControllers[index],
-                          maxLines: null, expands: true, keyboardType: TextInputType.multiline,
-                          scrollPadding: EdgeInsets.zero, textAlignVertical: TextAlignVertical.top,
-                          textCapitalization: TextCapitalization.sentences,
-                          style: contentTextStyle,
-                          decoration: InputDecoration(
-                            border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, errorBorder: InputBorder.none, disabledBorder: InputBorder.none, filled: false,
-                            hintText: index == 0 ? 'Bugün neler oldu?' : 'Devam et...',
-                            hintStyle: contentTextStyle?.copyWith(color: theme.hintColor.withOpacity(0.6)), contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
+                        child: _isMarkdownMode
+                            ? Column(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: TextField(
+                                      controller: _pageControllers[index],
+                                      maxLines: null,
+                                      expands: true,
+                                      style: contentTextStyle,
+                                      textAlign: TextAlign.justify,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
+                                        filled: false,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerLowest.withOpacity(0.5),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: _markdownService.buildMarkdownWidget(_pageControllers[index].text),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : TextField(
+                                controller: _pageControllers[index],
+                                maxLines: null,
+                                expands: true,
+                                style: contentTextStyle,
+                                textAlign: TextAlign.justify,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  filled: false,
+                                ),
+                              ),
                       );
                     },
                   ),
                 ),
+
+                // Medya Önizleme Alanı
+                if (_currentMediaItems.isNotEmpty)
+                  Container(
+                    height: 80, // %20 küçültme (100'den 80'e)
+                    padding: const EdgeInsets.symmetric(horizontal: 26.0, vertical: 8.0),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _currentMediaItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _currentMediaItems[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 64, // %20 küçültme (80'den 64'e)
+                                height: 64, // %20 küçültme (80'den 64'e)
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: item.type == MediaType.image
+                                      ? Image.file(File(item.path), fit: BoxFit.cover)
+                                      : item.type == MediaType.video && item.thumbnailPath != null
+                                          ? Image.file(File(item.thumbnailPath!), fit: BoxFit.cover)
+                                          : Icon(
+                                              item.type == MediaType.audio
+                                                  ? Icons.audio_file
+                                                  : Icons.video_file,
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  onPressed: () => _removeMediaItem(item),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Theme.of(context).colorScheme.surface,
+                                    padding: const EdgeInsets.all(4),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                // Çizim Önizleme
+                if (_currentDrawingData != null)
+                  Container(
+                    height: 80, // %20 küçültme (100'den 80'e)
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: FutureBuilder<Image>(
+                      future: _drawingService.base64ToDrawing(_currentDrawingData!),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: snapshot.data,
+                            ),
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                  ),
 
                 // --- Etiket Alanı (Chip'ler ve Ekleme - Kompakt) ---
                 Padding(
@@ -384,7 +765,7 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                                 focusNode: _newTagFocusNode,
                                 style: tagInputLabelStyle,
                                 decoration: InputDecoration(
-                                  hintText: 'Yeni etiket...',
+                                  hintText: l10n.newTagHint,
                                   hintStyle: tagInputLabelStyle?.copyWith(color: theme.hintColor.withOpacity(0.7)),
                                   isDense: true,
                                   border: InputBorder.none,
@@ -398,7 +779,7 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                             IconButton(
                               icon: Icon(Icons.add_circle_outline_rounded, size: 22, color: colorScheme.primary),
                               onPressed: _addNewTag,
-                              tooltip: 'Etiketi Ekle',
+                              tooltip: l10n.addTag,
                               visualDensity: VisualDensity.compact,
                               padding: const EdgeInsets.symmetric(horizontal: 6), // Padding ayarlandı
                             )
@@ -433,7 +814,14 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                       ),
                       // Son Güncelleme Bilgisi
                       if (_isEditing && widget.existingEntry != null && widget.existingEntry!.updatedAt.isAfter(widget.existingEntry!.createdAt))
-                        Padding( padding: const EdgeInsets.only(top: 4.0, bottom: 8.0), child: Text('Son Güncelleme: ${DateFormat('dd MMMM, HH:mm', 'tr_TR').format(widget.existingEntry!.updatedAt)}', style: infoTextStyle, textAlign: TextAlign.center))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                          child: Text(
+                            l10n.lastUpdated(DateFormat('dd MMMM, HH:mm', l10n.localeName).format(widget.existingEntry!.updatedAt)),
+                            style: infoTextStyle,
+                            textAlign: TextAlign.center,
+                          ),
+                        )
                       else // Yeni eklemede veya gösterge yoksa boşluk
                         const SizedBox(height: 12.0),
 
@@ -449,7 +837,7 @@ class _AddEditJournalScreenState extends State<AddEditJournalScreen> {
                                   icon: const
                                   Icon(
                                       Icons.post_add_rounded ), iconSize: 28,
-                                  tooltip: 'Yeni Sayfa Ekle',
+                                  tooltip: l10n.addPage,
                                   color: colorScheme.inverseSurface.withOpacity(0.7),
                                   padding: const EdgeInsets.all(10.0),
                                   constraints: const BoxConstraints())),

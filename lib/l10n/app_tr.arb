@@ -1,0 +1,597 @@
+{
+    "@@locale": "tr",
+    "appName": "MindVault",
+    "@appName": {
+        "description": "Uygulamanın adı"
+    },
+    "appTitle": "MindVault",
+    "settings": "Ayarlar",
+    "theme": "Görünüm ve Tema",
+    "@theme": {
+        "description": "Tema ayarları başlığı"
+    },
+    "themeDescription": "Tema, yazı tipi ve boyut ayarları",
+    "@themeDescription": {
+        "description": "Tema ayarları açıklaması"
+    },
+    "language": "Dil",
+    "@language": {
+        "description": "Dil ayarı başlığı"
+    },
+    "languageSelection": "Dil Seçimi",
+    "@languageSelection": {
+        "description": "Dil seçim dialog başlığı"
+    },
+    "about": "Hakkında",
+    "premium": "Premium Üye",
+    "@premium": {
+        "description": "Premium üyelik başlığı"
+    },
+    "premiumActive": "Tüm özellikler aktif",
+    "@premiumActive": {
+        "description": "Premium üyelik aktif durumu"
+    },
+    "upgradeToPremium": "Premium'a Yükselt",
+    "@upgradeToPremium": {
+        "description": "Premium'a yükseltme başlığı"
+    },
+    "upgradeToPremiumDescription": "Sınırsız tema ve özellikler için",
+    "@upgradeToPremiumDescription": {
+        "description": "Premium'a yükseltme açıklaması"
+    },
+    "premiumRequired": "Premium üyelik gereklidir",
+    "ok": "Tamam",
+    "@ok": {
+        "description": "Tamam butonu metni"
+    },
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "@save": {
+        "description": "Kaydet butonu açıklaması"
+    },
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "search": "Ara",
+    "noResults": "Sonuç bulunamadı",
+    "error": "Hata",
+    "success": "Başarılı",
+    "loading": "Yükleniyor...",
+    "retry": "Tekrar Dene",
+    "back": "Geri",
+    "next": "İleri",
+    "done": "Tamam",
+    "welcome": "Hoş Geldiniz",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "profile": "Profil",
+    "notifications": "Bildirimler",
+    "@notifications": {
+        "description": "Bildirimler başlığı"
+    },
+    "notificationsDescription": "Yazma hatırlatıcıları",
+    "@notificationsDescription": {
+        "description": "Bildirimler açıklaması"
+    },
+    "security": "Güvenlik",
+    "@security": {
+        "description": "Güvenlik başlığı"
+    },
+    "securityDescription": "Şifre, biyometrik kilit",
+    "@securityDescription": {
+        "description": "Güvenlik açıklaması"
+    },
+    "help": "Yardım",
+    "feedback": "Geri Bildirim",
+    "terms": "Kullanım Koşulları",
+    "privacy": "Gizlilik Politikası",
+    "version": "Versiyon",
+    "copyright": "Telif Hakkı",
+    "allRightsReserved": "Tüm Hakları Saklıdır",
+    "fontSize": "Yazı Tipi Boyutu",
+    "preview": "Önizleme",
+    "sampleTitle": "Örnek Başlık Yazısı",
+    "sampleText": "Bu alandaki metinler, seçtiğiniz tema stili ve \"{size}\" yazı tipi boyutuyla görüntülenmektedir.",
+    "@sampleText": {
+        "placeholders": {
+            "size": {
+                "type": "String",
+                "example": "Orta"
+            }
+        }
+    },
+    "sampleButton": "Örnek Buton",
+    "apply": "Uygula",
+    "small": "Küçük",
+    "medium": "Orta",
+    "large": "Büyük",
+    "seeAllThemes": "Tüm Temaları Gör",
+    "homeQuote": "Düşünceleriniz sizin özel alanınızdır.",
+    "whyMindVault": "Neden Mind Vault?",
+    "freemium": "Ücretsiz",
+    "premiumMember": "Premium Üye",
+    "onboardingWelcomeTitle": "Mind Vault'a Hoş Geldiniz!",
+    "onboardingWelcomeDesc": "Düşüncelerinizi, hislerinizi ve anılarınızı güvenle saklayacağınız kişisel dijital günlüğünüz.",
+    "onboardingPrivacyTitle": "Gizliliğiniz Önceliğimiz",
+    "onboardingPrivacyDesc": "Tüm günlükleriniz güçlü şifreleme ile korunur ve sadece sizin cihazınızda saklanır. Verileriniz asla buluta gönderilmez veya paylaşılmaz.",
+    "onboardingStartTitle": "Keşfetmeye Hazır Mısınız?",
+    "onboardingStartDesc": "Zihninizi serbest bırakın, iç dünyanızı keşfedin ve kişisel gelişiminizi takip edin. Başlamak için dokunun!",
+    "skip": "Atla",
+    "home": "Ana Sayfa",
+    "calendar": "Takvim",
+    "@calendar": {
+        "description": "Takvim ekranı başlığı"
+    },
+    "explore": "Keşfet",
+    "@explore": {
+        "description": "Keşfet ekranı başlığı"
+    },
+    "list": "Liste",
+    "@list": {
+        "description": "Liste ekranı başlığı"
+    },
+    "closeSearch": "Aramayı Kapat",
+    "@closeSearch": {
+        "description": "Arama kapatma butonu açıklaması"
+    },
+    "clearText": "Metni Temizle",
+    "@clearText": {
+        "description": "Metin temizleme butonu açıklaması"
+    },
+    "filter": "Filtrele",
+    "@filter": {
+        "description": "Filtreleme butonu metni"
+    },
+    "noMatchingRecords": "Eşleşen kayıt bulunamadı",
+    "@noMatchingRecords": {
+        "description": "Eşleşen kayıt yok mesajı"
+    },
+    "noJournalEntries": "Henüz günlük kaydınız bulunmuyor",
+    "@noJournalEntries": {
+        "description": "Günlük kaydı yok mesajı"
+    },
+    "monthly": "Aylık",
+    "@monthly": {
+        "description": "Aylık takvim formatı"
+    },
+    "twoWeeks": "2 Hafta",
+    "@twoWeeks": {
+        "description": "İki haftalık takvim formatı"
+    },
+    "weekly": "Haftalık",
+    "@weekly": {
+        "description": "Haftalık takvim formatı"
+    },
+    "drawing": "Çizim",
+    "@drawing": {
+        "description": "Çizim ekranı başlığı"
+    },
+    "undo": "Geri Al",
+    "@undo": {
+        "description": "Geri alma butonu açıklaması"
+    },
+    "redo": "İleri Al",
+    "@redo": {
+        "description": "İleri alma butonu açıklaması"
+    },
+    "selectColor": "Renk Seç",
+    "@selectColor": {
+        "description": "Renk seçme butonu açıklaması"
+    },
+    "eraser": "Silgi",
+    "@eraser": {
+        "description": "Silgi butonu açıklaması"
+    },
+    "clear": "Temizle",
+    "@clear": {
+        "description": "Temizleme butonu açıklaması"
+    },
+    "securitySettings": "Güvenlik Ayarları",
+    "@securitySettings": {
+        "description": "Güvenlik ayarları ekranı başlığı"
+    },
+    "appLock": "Uygulama Kilidi (PIN)",
+    "@appLock": {
+        "description": "Uygulama kilidi ayarı başlığı"
+    },
+    "enabled": "Etkin",
+    "@enabled": {
+        "description": "Etkin durum metni"
+    },
+    "disabled": "Kapalı",
+    "@disabled": {
+        "description": "Kapalı durum metni"
+    },
+    "changePin": "PIN Değiştir",
+    "@changePin": {
+        "description": "PIN değiştirme butonu metni"
+    },
+    "biometricLogin": "Biyometrik Giriş",
+    "@biometricLogin": {
+        "description": "Biyometrik giriş ayarı başlığı"
+    },
+    "enablePinFirst": "Önce PIN kilidini etkinleştirin",
+    "@enablePinFirst": {
+        "description": "PIN olmadan biyometriği etkinleştirmeye çalışırken gösterilen mesaj"
+    },
+    "deviceNotSupported": "Cihazınız desteklemiyor veya ayarlanamadı",
+    "@deviceNotSupported": {
+        "description": "Cihaz biyometriği desteklemediğinde gösterilen mesaj"
+    },
+    "pinVerification": "PIN Doğrulama",
+    "@pinVerification": {
+        "description": "PIN doğrulama dialog başlığı"
+    },
+    "enterCurrentPin": "Devam etmek için mevcut PIN kodunuzu girin.",
+    "@enterCurrentPin": {
+        "description": "PIN doğrulama dialog mesajı"
+    },
+    "verify": "Doğrula",
+    "@verify": {
+        "description": "Doğrula butonu metni"
+    },
+    "removePin": "PIN Kaldır",
+    "@removePin": {
+        "description": "PIN kaldırma dialog başlığı"
+    },
+    "removePinConfirmation": "Uygulama kilidi (PIN ve etkinse Biyometrik) kaldırılacaktır. Emin misiniz?",
+    "@removePinConfirmation": {
+        "description": "PIN kaldırma onay mesajı"
+    },
+    "removeLock": "Kilidi Kaldır",
+    "@removeLock": {
+        "description": "Kilit kaldırma butonu metni"
+    },
+    "createPin": "PIN Oluştur",
+    "@createPin": {
+        "description": "PIN oluşturma ekranı başlığı"
+    },
+    "changePinTitle": "PIN Değiştir",
+    "@changePinTitle": {
+        "description": "PIN değiştirme ekranı başlığı"
+    },
+    "createPinDescription": "Uygulamanızı korumak için 6 haneli bir PIN oluşturun.",
+    "@createPinDescription": {
+        "description": "PIN oluşturma ekranı açıklaması"
+    },
+    "changePinDescription": "Yeni 6 haneli PIN kodunuzu girin.",
+    "@changePinDescription": {
+        "description": "PIN değiştirme ekranı açıklaması"
+    },
+    "securityLock": "Güvenlik Kilidi",
+    "@securityLock": {
+        "description": "Güvenlik kilidi ekranı başlığı"
+    },
+    "enterPinToContinue": "Devam etmek için PIN kodunuzu girin.",
+    "@enterPinToContinue": {
+        "description": "Güvenlik kilidi ekranı mesajı"
+    },
+    "useBiometrics": "Biyometriği kullan",
+    "@useBiometrics": {
+        "description": "Biyometrik kullanım seçeneği metni"
+    },
+    "pinsDoNotMatch": "PIN'ler eşleşmiyor.",
+    "@pinsDoNotMatch": {
+        "description": "PIN eşleşmeme hata mesajı"
+    },
+    "pinSuccessfullySet": "PIN başarıyla oluşturuldu!",
+    "@pinSuccessfullySet": {
+        "description": "PIN oluşturma başarı mesajı"
+    },
+    "pinSuccessfullyChanged": "PIN başarıyla değiştirildi!",
+    "@pinSuccessfullyChanged": {
+        "description": "PIN değiştirme başarı mesajı"
+    },
+    "pinCouldNotBeSet": "PIN ayarlanamadı: {error}",
+    "@pinCouldNotBeSet": {
+        "description": "PIN ayarlama hata mesajı",
+        "placeholders": {
+            "error": {
+                "type": "String",
+                "example": "Geçersiz PIN"
+            }
+        }
+    },
+    "incorrectPin": "Girilen PIN hatalı!",
+    "@incorrectPin": {
+        "description": "Hatalı PIN hata mesajı"
+    },
+    "reminderSettings": "Hatırlatıcı Ayarları",
+    "@reminderSettings": {
+        "description": "Hatırlatıcı ayarları ekranı başlığı"
+    },
+    "dailyReminder": "Günlük Yazma Hatırlatıcısı",
+    "@dailyReminder": {
+        "description": "Günlük hatırlatıcı bölüm başlığı"
+    },
+    "enableReminder": "Hatırlatıcıyı Aç",
+    "@enableReminder": {
+        "description": "Hatırlatıcı açma düğmesi başlığı"
+    },
+    "reminderEnabled": "Her gün seçtiğiniz saatte bildirim alacaksınız.",
+    "@reminderEnabled": {
+        "description": "Hatırlatıcı açık açıklaması"
+    },
+    "reminderDisabled": "Bildirimler kapalı.",
+    "@reminderDisabled": {
+        "description": "Hatırlatıcı kapalı açıklaması"
+    },
+    "reminderTime": "Hatırlatma Saati",
+    "@reminderTime": {
+        "description": "Hatırlatma saati ayarı başlığı"
+    },
+    "notSet": "Ayarlanmadı",
+    "@notSet": {
+        "description": "Ayarlanmamış durum metni"
+    },
+    "notificationPermissions": "Bildirim İzinleri",
+    "@notificationPermissions": {
+        "description": "Bildirim izinleri bölüm başlığı"
+    },
+    "permissionsGranted": "Uygulamanın bildirim gönderme izni var.",
+    "@permissionsGranted": {
+        "description": "İzinler verilmiş mesajı"
+    },
+    "permissionsRequired": "Hatırlatıcıların çalışması için bildirim izinleri gerekli.",
+    "@permissionsRequired": {
+        "description": "İzinler gerekli mesajı"
+    },
+    "grantPermission": "İzin Ver",
+    "@grantPermission": {
+        "description": "İzin verme düğmesi metni"
+    },
+    "selectReminderTime": "Günlük Hatırlatma Saati Seçin",
+    "@selectReminderTime": {
+        "description": "Saat seçici dialog başlığı"
+    },
+    "reminderTimeSet": "Günlük hatırlatma saati {time} olarak ayarlandı",
+    "@reminderTimeSet": {
+        "description": "Reminder time set confirmation message",
+        "placeholders": {
+            "time": {
+                "type": "String",
+                "example": "09:00"
+            }
+        }
+    },
+    "reminderDisabled": "Günlük hatırlatıcı kapatıldı",
+    "@reminderDisabled": {
+        "description": "Hatırlatıcı kapatıldı onay mesajı"
+    },
+    "permissionsRequiredForReminders": "Hatırlatıcıları kullanmak için bildirim izinleri gereklidir.",
+    "@permissionsRequiredForReminders": {
+        "description": "İzinler gerekli hata mesajı"
+    },
+    "selectTimeFirst": "Lütfen hatırlatma saatini seçin.",
+    "@selectTimeFirst": {
+        "description": "Saat seçme uyarı mesajı"
+    },
+    "settingsSaveError": "Ayarlar kaydedilirken bir hata oluştu.",
+    "@settingsSaveError": {
+        "description": "Ayarlar kaydetme hata mesajı"
+    },
+    "selectMood": "Ruh Hali Seç",
+    "@selectMood": {
+        "description": "Mood selector tooltip text"
+    },
+    "filterByMood": "Ruh Haline Göre Filtrele",
+    "@filterByMood": {
+        "description": "Filter sheet title"
+    },
+    "clearSelection": "Seçimi Temizle",
+    "@clearSelection": {
+        "description": "Clear selection button text"
+    },
+    "applyFilter": "Filtrele",
+    "@applyFilter": {
+        "description": "Apply filter button text"
+    },
+    "close": "Kapat",
+    "@close": {
+        "description": "Close button tooltip"
+    },
+    "update": "Güncelle",
+    "@update": { "description": "Güncelle butonu metni" },
+
+    "journalSaved": "Günlük kaydedildi.",
+    "@journalSaved": { "description": "Günlük kaydedildi snackbar mesajı" },
+
+    "journalUpdated": "Günlük güncellendi.",
+    "@journalUpdated": { "description": "Günlük güncellendi snackbar mesajı" },
+
+    "journalContentEmpty": "Günlük içeriği boş olamaz.",
+    "@journalContentEmpty": { "description": "Günlük içeriği boş hata mesajı" },
+
+    "discardChangesTitle": "Değişiklikleri Sil?",
+    "@discardChangesTitle": { "description": "Değişiklikleri silme dialog başlığı" },
+
+    "discardChangesContent": "Yaptığınız değişiklikler kaydedilmeyecek. Çıkmak istediğinize emin misiniz?",
+    "@discardChangesContent": { "description": "Değişiklikleri silme dialog içeriği" },
+
+    "discard": "Değişiklikleri Sil",
+    "@discard": { "description": "Değişiklikleri sil butonu metni" },
+
+    "newTagHint": "Yeni etiket...",
+    "@newTagHint": { "description": "Yeni etiket giriş alanı ipucu" },
+
+    "addTag": "Etiketi Ekle",
+    "@addTag": { "description": "Etiket ekle butonu ipucu" },
+
+    "markdownMode": "Markdown Modu",
+    "@markdownMode": { "description": "Markdown modu butonu ipucu" },
+
+    "templates": "Şablonlar",
+    "@templates": { "description": "Şablonlar butonu ipucu" },
+
+    "addImage": "Resim Ekle",
+    "@addImage": { "description": "Resim ekle butonu ipucu" },
+
+    "addVideo": "Video Ekle",
+    "@addVideo": { "description": "Video ekle butonu ipucu" },
+
+    "addAudio": "Ses Ekle",
+    "@addAudio": { "description": "Ses ekle butonu ipucu" },
+
+    "draw": "Çizim Yap",
+    "@draw": { "description": "Çizim yap butonu ipucu" },
+
+    "selectTemplate": "Şablon Seç",
+    "@selectTemplate": { "description": "Şablon seçme dialog başlığı" },
+
+    "addPage": "Yeni Sayfa Ekle",
+    "@addPage": { "description": "Yeni sayfa ekle butonu ipucu" },
+
+    "lastUpdated": "Son Güncelleme: {date}",
+    "@lastUpdated": {
+        "description": "Son güncelleme tarihi etiketi",
+        "placeholders": {
+            "date": { "type": "String", "example": "12 Mart, 14:30" }
+        }
+    },
+    "premiumThemes": "Premium Temalar",
+    "@premiumThemes": { "description": "Premium temalar ekranı başlığı" },
+
+    "upgradeToPremium": "Premium'a Yükselt",
+    "@upgradeToPremium": { "description": "Yükseltme ekranı başlığı" },
+
+    "premiumTitle": "MindVault Premium",
+    "@premiumTitle": { "description": "Premium bölüm başlığı" },
+
+    "premiumDescription": "Tüm temalara ve özelliklere erişim sağlayarak MindVault'ı kişiselleştirin.",
+    "@premiumDescription": { "description": "Premium bölüm açıklaması" },
+
+    "perMonth": "/aylık",
+    "@perMonth": { "description": "Abonelik periyodu göstergesi" },
+
+    "upgradeNow": "Hemen Premium Ol",
+    "@upgradeNow": { "description": "Yükseltme butonu metni" },
+
+    "subscriptionAutoRenews": "Abonelik otomatik yenilenir. İstediğiniz zaman iptal edebilirsiniz.",
+    "@subscriptionAutoRenews": { "description": "Abonelik otomatik yenileme bildirimi" },
+
+    "premiumInfoError": "Premium abonelik bilgileri alınamadı.",
+    "@premiumInfoError": { "description": "Premium bilgi yükleme hata mesajı" },
+
+    "tryAgain": "Tekrar Dene",
+    "@tryAgain": { "description": "Yeniden deneme butonu metni" },
+
+    "allThemes": "Tüm Temalar",
+    "@allThemes": { "description": "Abonelik varken temalar bölümü başlığı" },
+
+    "themeStyles": "Tema Stilleri",
+    "@themeStyles": { "description": "Abonelik yokken temalar bölümü başlığı" },
+
+    "premiumUpgradeMessage": "✨ Kilitli temaları açmak ve tüm özelliklerden yararlanmak için Premium'a geçin.",
+    "@premiumUpgradeMessage": { "description": "Premium yükseltme teşvik mesajı" },
+
+    "premiumActive": "Premium üyeliğiniz aktif! Tüm temalara erişebilirsiniz.",
+    "@premiumActive": { "description": "Premium aktif olduğunda gösterilen mesaj" },
+
+    "themeLocked": "{themeName} teması için Premium üyelik gereklidir.",
+    "@themeLocked": {
+        "description": "Kilitli tema kullanılmaya çalışıldığında gösterilen mesaj",
+        "placeholders": {
+            "themeName": { "type": "String", "example": "Koyu" }
+        }
+    },
+
+    "subscribe": "Abone Ol",
+    "@subscribe": { "description": "Abone ol butonu metni" },
+
+    "themesCouldNotBeLoaded": "Temalar yüklenemedi.",
+    "exampleTitle": "Örnek Başlık",
+    "exampleDescription": "Seçili tema ile metinler böyle görünecek. Farklı renkler ve fontlar...",
+    "exampleButton": "Örnek Buton",
+    "setAppliedStyle": "Uygulanan Stili Ayarla",
+    "goToThemeSettings": "Tema Ayarlarına Git",
+    "premium": "Premium",
+    "home": "Ana Sayfa",
+    "calendar": "Takvim",
+    "explore": "Keşfet",
+    "settings": "Ayarlar",
+    "newJournalEntry": "Yeni Günlük Girişi",
+    "whyMindVault": "Neden Mind Vault?",
+    "freemium": "Ücretsiz",
+    "premiumMember": "Premium Üye",
+    "list": "Liste",
+    "calendarTab": "Takvim",
+    "onboardingWelcomeTitle": "Mind Vault'a Hoş Geldiniz!",
+    "onboardingWelcomeDescription": "Düşüncelerinizi, hislerinizi ve anılarınızı güvenle saklayacağınız kişisel dijital günlüğünüz.",
+    "onboardingPrivacyTitle": "Gizliliğiniz Önceliğimiz",
+    "onboardingPrivacyDescription": "Tüm günlükleriniz güçlü şifreleme ile korunur ve sadece sizin cihazınızda saklanır. Verileriniz asla buluta gönderilmez veya paylaşılmaz.",
+    "onboardingStartTitle": "Keşfetmeye Hazır Mısınız?",
+    "onboardingStartDescription": "Zihninizi serbest bırakın, iç dünyanızı keşfedin ve kişisel gelişiminizi takip edin. Başlamak için dokunun!",
+    "themeDefaultLight": "Aydınlık",
+    "themeDefaultDark": "Altın Vurgu",
+    "themeClassicLeather": "Deri",
+    "themeAntique": "Antika",
+    "themeBlueprint": "Mimari",
+    "themeScrapbook": "Karalama",
+    "themeJapanese": "Minimalist",
+    "themeWatercolor": "Suluboya",
+    "notificationSettings": "Bildirim Ayarları",
+    "dailyReminderTime": "Günlük Hatırlatma Saati",
+    "reminderEnabledMessage": "Günlük hatırlatıcı {time} için kuruldu",
+    "@reminderEnabledMessage": {
+        "description": "Reminder enabled confirmation message",
+        "placeholders": {
+            "time": {
+                "type": "String",
+                "example": "09:00"
+            }
+        }
+    },
+    "reminderDisabledMessage": "Günlük hatırlatıcı kapatıldı",
+    "notificationError": "Ayarlar kaydedilirken bir hata oluştu.",
+    "themeWatercolor": "Suluboya",
+    "calendarList": "Liste",
+    "@calendarList": {
+        "description": "Calendar list view tab label"
+    },
+    "calendarView": "Takvim",
+    "@calendarView": {
+        "description": "Calendar view tab label"
+    },
+    "restorePurchases": "Satın Alımları Geri Yükle",
+    "@restorePurchases": {
+        "description": "Text for the restore purchases button"
+    },
+    "premiumThemesDescription": "Tüm premium temalara ve stillere erişim",
+    "@premiumThemesDescription": {
+        "description": "Description for premium themes feature"
+    },
+    "premiumFeatures": "Premium Özellikler",
+    "@premiumFeatures": {
+        "description": "Title for premium features section"
+    },
+    "premiumFeaturesDescription": "Tüm premium özellikleri ve özelleştirme seçeneklerini aç",
+    "@premiumFeaturesDescription": {
+        "description": "Description for premium features"
+    },
+    "premiumSupport": "Premium Destek",
+    "@premiumSupport": {
+        "description": "Title for premium support section"
+    },
+    "premiumSupportDescription": "Öncelikli destek ve yeni özelliklere erken erişim",
+    "@premiumSupportDescription": {
+        "description": "Description for premium support"
+    },
+    "premiumWeekly": "Haftalık",
+    "premiumWeeklyDescription": "Otomatik yenilenen haftalık abonelik",
+    "premiumMonthly": "Aylık",
+    "premiumMonthlyDescription": "Otomatik yenilenen aylık abonelik",
+    "premiumLifetime": "Ömür Boyu",
+    "premiumLifetimeDescription": "Tek seferlik ödeme, ömür boyu erişim",
+    "@premiumWeekly": {"description": "Haftalık abonelik planı başlığı"},
+    "@premiumWeeklyDescription": {"description": "Haftalık abonelik planı açıklaması"},
+    "@premiumMonthly": {"description": "Aylık abonelik planı başlığı"},
+    "@premiumMonthlyDescription": {"description": "Aylık abonelik planı açıklaması"},
+    "@premiumLifetime": {"description": "Ömür boyu abonelik planı başlığı"},
+    "@premiumLifetimeDescription": {"description": "Ömür boyu abonelik planı açıklaması"},
+    "seePriceOnGooglePlay": "Fiyatı Google Play'de göreceksiniz",
+    "@seePriceOnGooglePlay": {"description": "Abonelik fiyatı Google Play'de gösterilecek uyarı metni"},
+    "weeklyPriceSuffix": "/Hafta",
+    "monthlyPriceSuffix": "/Ay",
+    "@weeklyPriceSuffix": {"description": "Haftalık fiyat etiketi son eki"},
+    "@monthlyPriceSuffix": {"description": "Aylık fiyat etiketi son eki"}
+} 

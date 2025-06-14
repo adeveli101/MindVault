@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:mindvault/features/journal/model/journal_entry.dart';
 
 class FilterSheet extends StatefulWidget {
@@ -30,6 +30,7 @@ class _FilterSheetState extends State<FilterSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Gösterilecek mood'lar (unknown hariç)
     final availableMoods = Mood.values.where((m) => m != Mood.unknown).toList();
@@ -45,11 +46,11 @@ class _FilterSheetState extends State<FilterSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ruh Haline Göre Filtrele', style: textTheme.titleMedium),
+              Text(l10n.filterByMood, style: textTheme.titleMedium),
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(context), // Değişiklik yapmadan kapat
-                tooltip: 'Kapat',
+                tooltip: l10n.close,
               ),
             ],
           ),
@@ -106,12 +107,12 @@ class _FilterSheetState extends State<FilterSheet> {
                   // İsteğe bağlı: Temizle butonuna basınca sayfayı kapatıp null dönebilir
                   // Navigator.pop(context, <Mood>{}); // Boş set veya null dönebilir
                 },
-                child: const Text('Seçimi Temizle'),
+                child: Text(l10n.clearSelection),
               ),
               // Uygula Butonu
               ElevatedButton.icon(
                 icon: const Icon(Icons.check_rounded, size: 18),
-                label: const Text('Filtrele'),
+                label: Text(l10n.applyFilter),
                 onPressed: () {
                   // Seçilen mood'ları (Set olarak) geri döndür
                   Navigator.pop(context, _tempSelectedMoods);

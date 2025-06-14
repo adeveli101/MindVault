@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:popover/popover.dart'; // Popover paketi import edildi
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 // İkon paketleri için öneri (pubspec.yaml'a ekleyip import edin)
 // import 'package:iconsax/iconsax.dart';
 // import 'package:line_awesome_flutter/line_awesome_flutter.dart';
@@ -345,6 +346,7 @@ class _MoodSelectorWidgetState extends State<MoodSelectorWidget> {
   Widget _buildMainButton(BuildContext context, ThemeData theme) {
     final colorScheme = theme.colorScheme;
     final bool isSelected = _selectedMood != null;
+    final l10n = AppLocalizations.of(context)!;
 
     final IconData currentIcon;
     final Color buttonBgColor;
@@ -358,9 +360,9 @@ class _MoodSelectorWidgetState extends State<MoodSelectorWidget> {
       tooltipText = _getMoodName(_selectedMood!);
     } else {
       currentIcon = widget.defaultIcon;
-      buttonBgColor = colorScheme.surfaceContainerHighest.withOpacity(0.7); // Hafif bir arka plan
-      iconFgColor = colorScheme.onSurfaceVariant; // Nötr ikon rengi
-      tooltipText = "Ruh Hali Seç";
+      buttonBgColor = colorScheme.surfaceContainerHighest.withOpacity(0.7);
+      iconFgColor = colorScheme.onSurfaceVariant;
+      tooltipText = l10n.selectMood;
     }
 
     // Kenarlık rengi seçiliyken mood rengi, değilken outline

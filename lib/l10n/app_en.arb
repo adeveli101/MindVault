@@ -1,0 +1,596 @@
+{
+    "@@locale": "en",
+    "appName": "MindVault",
+    "@appName": {
+        "description": "The name of the application"
+    },
+    "appTitle": "MindVault",
+    "settings": "Settings",
+    "theme": "Appearance & Theme",
+    "@theme": {
+        "description": "Theme settings title"
+    },
+    "themeDescription": "Theme, font and size settings",
+    "@themeDescription": {
+        "description": "Theme settings description"
+    },
+    "language": "Language",
+    "@language": {
+        "description": "Language setting title"
+    },
+    "languageSelection": "Select Language",
+    "@languageSelection": {
+        "description": "Language selection dialog title"
+    },
+    "about": "About",
+    "premium": "Premium Member",
+    "@premium": {
+        "description": "Premium membership title"
+    },
+    "premiumActive": "All features active",
+    "@premiumActive": {
+        "description": "Premium membership active status"
+    },
+    "upgradeToPremium": "Upgrade to Premium",
+    "@upgradeToPremium": {
+        "description": "Premium upgrade title"
+    },
+    "upgradeToPremiumDescription": "For unlimited themes and features",
+    "@upgradeToPremiumDescription": {
+        "description": "Premium upgrade description"
+    },
+    "premiumRequired": "Premium subscription required",
+    "ok": "OK",
+    "@ok": {
+        "description": "OK button text"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "@save": {
+        "description": "Save button tooltip"
+    },
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "noResults": "No results found",
+    "error": "Error",
+    "success": "Success",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "welcome": "Welcome",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "@notifications": {
+        "description": "Notifications title"
+    },
+    "notificationsDescription": "Writing reminders",
+    "@notificationsDescription": {
+        "description": "Notifications description"
+    },
+    "security": "Security",
+    "@security": {
+        "description": "Security title"
+    },
+    "securityDescription": "Password, biometric lock",
+    "@securityDescription": {
+        "description": "Security description"
+    },
+    "help": "Help",
+    "feedback": "Feedback",
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "version": "Version",
+    "copyright": "Copyright",
+    "allRightsReserved": "All Rights Reserved",
+    "fontSize": "Font Size",
+    "preview": "Preview",
+    "sampleTitle": "Sample Title Text",
+    "sampleText": "The text in this area is displayed with your selected theme style and \"{size}\" font size.",
+    "@sampleText": {
+        "placeholders": {
+            "size": {
+                "type": "String",
+                "example": "Medium"
+            }
+        }
+    },
+    "sampleButton": "Sample Button",
+    "apply": "Apply",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "seeAllThemes": "See All Themes",
+    "homeQuote": "Your thoughts are your private space.",
+    "whyMindVault": "Why Mind Vault?",
+    "freemium": "Freemium",
+    "premiumMember": "Premium Member",
+    "onboardingWelcomeTitle": "Welcome to Mind Vault!",
+    "onboardingWelcomeDesc": "Your personal digital journal to safely store your thoughts, feelings, and memories.",
+    "onboardingPrivacyTitle": "Your Privacy is Our Priority",
+    "onboardingPrivacyDesc": "All your journals are protected with strong encryption and stored only on your device. Your data is never sent to the cloud or shared.",
+    "onboardingStartTitle": "Ready to Explore?",
+    "onboardingStartDesc": "Free your mind, discover your inner world, and track your personal growth. Tap to get started!",
+    "skip": "Skip",
+    "home": "Home",
+    "calendar": "Calendar",
+    "@calendar": {
+        "description": "Calendar screen title"
+    },
+    "explore": "Explore",
+    "@explore": {
+        "description": "Explore screen title"
+    },
+    "list": "List",
+    "@list": {
+        "description": "List screen title"
+    },
+    "closeSearch": "Close Search",
+    "@closeSearch": {
+        "description": "Close search button tooltip"
+    },
+    "clearText": "Clear Text",
+    "@clearText": {
+        "description": "Clear text button tooltip"
+    },
+    "filter": "Filter",
+    "@filter": {
+        "description": "Filter button text"
+    },
+    "noMatchingRecords": "No matching records found",
+    "@noMatchingRecords": {
+        "description": "No matching records message"
+    },
+    "noJournalEntries": "No journal entries yet",
+    "@noJournalEntries": {
+        "description": "No journal entries message"
+    },
+    "monthly": "Monthly",
+    "@monthly": {
+        "description": "Monthly calendar format"
+    },
+    "twoWeeks": "Two Weeks",
+    "@twoWeeks": {
+        "description": "Two weeks calendar format"
+    },
+    "weekly": "Weekly",
+    "@weekly": {
+        "description": "Weekly calendar format"
+    },
+    "drawing": "Drawing",
+    "@drawing": {
+        "description": "Drawing screen title"
+    },
+    "undo": "Undo",
+    "@undo": {
+        "description": "Undo button tooltip"
+    },
+    "redo": "Redo",
+    "@redo": {
+        "description": "Redo button tooltip"
+    },
+    "selectColor": "Select Color",
+    "@selectColor": {
+        "description": "Select color button tooltip"
+    },
+    "eraser": "Eraser",
+    "@eraser": {
+        "description": "Eraser button tooltip"
+    },
+    "clear": "Clear",
+    "@clear": {
+        "description": "Clear button tooltip"
+    },
+    "securitySettings": "Security Settings",
+    "@securitySettings": {
+        "description": "Security settings screen title"
+    },
+    "appLock": "App Lock (PIN)",
+    "@appLock": {
+        "description": "App lock setting title"
+    },
+    "enabled": "Enabled",
+    "@enabled": {
+        "description": "Enabled status text"
+    },
+    "disabled": "Disabled",
+    "@disabled": {
+        "description": "Disabled status text"
+    },
+    "changePin": "Change PIN",
+    "@changePin": {
+        "description": "Change PIN button text"
+    },
+    "biometricLogin": "Biometric Login",
+    "@biometricLogin": {
+        "description": "Biometric login setting title"
+    },
+    "enablePinFirst": "Enable PIN lock first",
+    "@enablePinFirst": {
+        "description": "Message shown when trying to enable biometrics without PIN"
+    },
+    "deviceNotSupported": "Your device does not support or could not be configured",
+    "@deviceNotSupported": {
+        "description": "Message shown when device doesn't support biometrics"
+    },
+    "pinVerification": "PIN Verification",
+    "@pinVerification": {
+        "description": "PIN verification dialog title"
+    },
+    "enterCurrentPin": "Enter your current PIN to continue.",
+    "@enterCurrentPin": {
+        "description": "PIN verification dialog message"
+    },
+    "verify": "Verify",
+    "@verify": {
+        "description": "Verify button text"
+    },
+    "removePin": "Remove PIN",
+    "@removePin": {
+        "description": "Remove PIN dialog title"
+    },
+    "removePinConfirmation": "The app lock (PIN and biometrics if enabled) will be removed. Are you sure?",
+    "@removePinConfirmation": {
+        "description": "Remove PIN confirmation message"
+    },
+    "removeLock": "Remove Lock",
+    "@removeLock": {
+        "description": "Remove lock button text"
+    },
+    "createPin": "Create PIN",
+    "@createPin": {
+        "description": "Create PIN screen title"
+    },
+    "changePinTitle": "Change PIN",
+    "@changePinTitle": {
+        "description": "Change PIN screen title"
+    },
+    "createPinDescription": "Create a 6-digit PIN to protect your app.",
+    "@createPinDescription": {
+        "description": "Create PIN screen description"
+    },
+    "changePinDescription": "Enter your new 6-digit PIN.",
+    "@changePinDescription": {
+        "description": "Change PIN screen description"
+    },
+    "securityLock": "Security Lock",
+    "@securityLock": {
+        "description": "Security lock screen title"
+    },
+    "enterPinToContinue": "Enter your PIN to continue.",
+    "@enterPinToContinue": {
+        "description": "Security lock screen message"
+    },
+    "useBiometrics": "Use biometrics",
+    "@useBiometrics": {
+        "description": "Use biometrics option text"
+    },
+    "pinsDoNotMatch": "PINs do not match.",
+    "@pinsDoNotMatch": {
+        "description": "PIN mismatch error message"
+    },
+    "pinSuccessfullySet": "PIN successfully set!",
+    "@pinSuccessfullySet": {
+        "description": "PIN set success message"
+    },
+    "pinSuccessfullyChanged": "PIN successfully changed!",
+    "@pinSuccessfullyChanged": {
+        "description": "PIN change success message"
+    },
+    "pinCouldNotBeSet": "PIN could not be set: {error}",
+    "@pinCouldNotBeSet": {
+        "description": "PIN set error message",
+        "placeholders": {
+            "error": {
+                "type": "String",
+                "example": "Invalid PIN"
+            }
+        }
+    },
+    "incorrectPin": "Incorrect PIN!",
+    "@incorrectPin": {
+        "description": "Incorrect PIN error message"
+    },
+    "reminderSettings": "Reminder Settings",
+    "@reminderSettings": {
+        "description": "Reminder settings screen title"
+    },
+    "dailyReminder": "Daily Writing Reminder",
+    "@dailyReminder": {
+        "description": "Daily reminder section title"
+    },
+    "enableReminder": "Enable Reminder",
+    "@enableReminder": {
+        "description": "Enable reminder switch title"
+    },
+    "reminderEnabled": "You will receive notifications at your selected time every day.",
+    "@reminderEnabled": {
+        "description": "Reminder enabled description"
+    },
+    "reminderDisabled": "Notifications are off.",
+    "@reminderDisabled": {
+        "description": "Reminder disabled description"
+    },
+    "reminderTime": "Reminder Time",
+    "@reminderTime": {
+        "description": "Reminder time setting title"
+    },
+    "notSet": "Not Set",
+    "@notSet": {
+        "description": "Not set status text"
+    },
+    "notificationPermissions": "Notification Permissions",
+    "@notificationPermissions": {
+        "description": "Notification permissions section title"
+    },
+    "permissionsGranted": "App has permission to send notifications.",
+    "@permissionsGranted": {
+        "description": "Permissions granted message"
+    },
+    "permissionsRequired": "Notification permissions are required for reminders to work.",
+    "@permissionsRequired": {
+        "description": "Permissions required message"
+    },
+    "grantPermission": "Grant Permission",
+    "@grantPermission": {
+        "description": "Grant permission button text"
+    },
+    "selectReminderTime": "Please select a reminder time.",
+    "@selectReminderTime": {
+        "description": "Time picker dialog title"
+    },
+    "reminderTimeSet": "Daily reminder time set to {time}",
+    "@reminderTimeSet": {
+        "description": "Reminder time set confirmation message",
+        "placeholders": {
+            "time": {
+                "type": "String",
+                "example": "9:00 AM"
+            }
+        }
+    },
+    "reminderDisabled": "Daily reminder disabled",
+    "@reminderDisabled": {
+        "description": "Reminder disabled confirmation message"
+    },
+    "permissionsRequiredForReminders": "Notification permissions are required to use reminders.",
+    "@permissionsRequiredForReminders": {
+        "description": "Permissions required error message"
+    },
+    "selectTimeFirst": "Please select a reminder time first.",
+    "@selectTimeFirst": {
+        "description": "Select time prompt message"
+    },
+    "settingsSaveError": "An error occurred while saving settings.",
+    "@settingsSaveError": {
+        "description": "Settings save error message"
+    },
+    "selectMood": "Select Mood",
+    "@selectMood": {
+        "description": "Mood selector tooltip text"
+    },
+    "filterByMood": "Filter by Mood",
+    "@filterByMood": {
+        "description": "Filter sheet title"
+    },
+    "clearSelection": "Clear Selection",
+    "@clearSelection": {
+        "description": "Clear selection button text"
+    },
+    "applyFilter": "Apply Filter",
+    "@applyFilter": {
+        "description": "Apply filter button text"
+    },
+    "close": "Close",
+    "@close": {
+        "description": "Close button tooltip"
+    },
+    "update": "Update",
+    "@update": { "description": "Update button text" },
+
+    "journalSaved": "Journal saved.",
+    "@journalSaved": { "description": "Snackbar message for journal saved" },
+
+    "journalUpdated": "Journal updated.",
+    "@journalUpdated": { "description": "Snackbar message for journal updated" },
+
+    "journalContentEmpty": "Journal content cannot be empty.",
+    "@journalContentEmpty": { "description": "Error message for empty journal content" },
+
+    "discardChangesTitle": "Discard changes?",
+    "@discardChangesTitle": { "description": "Dialog title for discarding changes" },
+
+    "discardChangesContent": "Your changes will not be saved. Are you sure you want to exit?",
+    "@discardChangesContent": { "description": "Dialog content for discarding changes" },
+
+    "discard": "Discard changes",
+    "@discard": { "description": "Discard changes button text" },
+
+    "newTagHint": "New tag...",
+    "@newTagHint": { "description": "Hint text for new tag input" },
+
+    "addTag": "Add tag",
+    "@addTag": { "description": "Tooltip for add tag button" },
+
+    "markdownMode": "Markdown mode",
+    "@markdownMode": { "description": "Tooltip for markdown mode button" },
+
+    "templates": "Templates",
+    "@templates": { "description": "Tooltip for templates button" },
+
+    "addImage": "Add image",
+    "@addImage": { "description": "Tooltip for add image button" },
+
+    "addVideo": "Add video",
+    "@addVideo": { "description": "Tooltip for add video button" },
+
+    "addAudio": "Add audio",
+    "@addAudio": { "description": "Tooltip for add audio button" },
+
+    "draw": "Draw",
+    "@draw": { "description": "Tooltip for draw button" },
+
+    "selectTemplate": "Select Template",
+    "@selectTemplate": { "description": "Dialog title for selecting a template" },
+
+    "addPage": "Add new page",
+    "@addPage": { "description": "Tooltip for add new page button" },
+
+    "lastUpdated": "Last updated: {date}",
+    "@lastUpdated": {
+        "description": "Label for last updated date",
+        "placeholders": {
+            "date": { "type": "String", "example": "12 March, 14:30" }
+        }
+    },
+    "premiumThemes": "Premium Themes",
+    "@premiumThemes": { "description": "Title for premium themes screen" },
+
+    "premiumTitle": "MindVault Premium",
+    "@premiumTitle": { "description": "Premium section title" },
+
+    "premiumDescription": "Personalize MindVault by accessing all themes and features.",
+    "@premiumDescription": { "description": "Premium section description" },
+
+    "perMonth": "/month",
+    "@perMonth": { "description": "Subscription period indicator" },
+
+    "upgradeNow": "Upgrade Now",
+    "@upgradeNow": { "description": "Upgrade button text" },
+
+    "subscriptionAutoRenews": "Subscription auto-renews. You can cancel anytime.",
+    "@subscriptionAutoRenews": { "description": "Subscription auto-renewal notice" },
+
+    "premiumInfoError": "Could not load premium subscription information.",
+    "@premiumInfoError": { "description": "Error message for premium info loading" },
+
+    "tryAgain": "Try Again",
+    "@tryAgain": { "description": "Retry button text" },
+
+    "allThemes": "All Themes",
+    "@allThemes": { "description": "Title for themes section when subscribed" },
+
+    "themeStyles": "Theme Styles",
+    "@themeStyles": { "description": "Title for themes section when not subscribed" },
+
+    "premiumUpgradeMessage": "✨ Upgrade to Premium to unlock locked themes and access all features.",
+    "@premiumUpgradeMessage": { "description": "Message encouraging premium upgrade" },
+
+    "themeLocked": "{themeName} theme requires Premium subscription.",
+    "@themeLocked": {
+        "description": "Message shown when trying to use a locked theme",
+        "placeholders": {
+            "themeName": { "type": "String", "example": "Dark" }
+        }
+    },
+
+    "subscribe": "Subscribe",
+    "@subscribe": { "description": "Subscribe button text" },
+
+
+    "themesCouldNotBeLoaded": "Themes could not be loaded.",
+    "exampleTitle": "Example Title",
+    "exampleDescription": "This is how text will look with the selected theme. Different colors and fonts...",
+    "exampleButton": "Example Button",
+    "setAppliedStyle": "Set Applied Style",
+    "goToThemeSettings": "Go to Theme Settings",
+    "premium": "Premium",
+    "home": "Home",
+    "calendar": "Calendar",
+    "explore": "Explore",
+    "settings": "Settings",
+    "newJournalEntry": "New Journal Entry",
+    "whyMindVault": "Why Mind Vault?",
+    "freemium": "Freemium",
+    "premiumMember": "Premium Member",
+    "list": "List",
+    "calendarTab": "Calendar",
+    "onboardingWelcomeTitle": "Welcome to Mind Vault!",
+    "onboardingWelcomeDescription": "Your personal digital journal to safely store your thoughts, feelings, and memories.",
+    "onboardingPrivacyTitle": "Your Privacy is Our Priority",
+    "onboardingPrivacyDescription": "All your journals are protected with strong encryption and stored only on your device. Your data is never sent to the cloud or shared.",
+    "onboardingStartTitle": "Ready to Explore?",
+    "onboardingStartDescription": "Free your mind, explore your inner world, and track your personal growth. Tap to get started!",
+    "themeDefaultLight": "Light",
+    "themeDefaultDark": "Gold Accent",
+    "themeClassicLeather": "Leather",
+    "themeAntique": "Antique",
+    "themeBlueprint": "Architectural",
+    "themeScrapbook": "Sketch",
+    "themeJapanese": "Minimalist",
+    "themeWatercolor": "Watercolor",
+    "notificationSettings": "Notification Settings",
+    "dailyReminderTime": "Daily Reminder Time",
+    "reminderEnabledMessage": "Daily reminder set for {time}",
+    "@reminderEnabledMessage": {
+        "description": "Reminder enabled confirmation message",
+        "placeholders": {
+            "time": {
+                "type": "String",
+                "example": "9:00 AM"
+            }
+        }
+    },
+    "reminderDisabledMessage": "Daily reminder disabled",
+    "notificationError": "An error occurred while saving settings.",
+    "notificationPermissionsRequired": "Notification permissions are required to use reminders.",
+    "notificationTitle": "Mind Vault Reminder",
+    "notificationBody": "Time to write! What's on your mind today?",
+    "notificationMissedTitle": "We Miss You!",
+    "notificationMissedBody": "Haven't seen you in a while. Would you like to take a moment to write your thoughts?",
+    "calendarList": "List",
+    "@calendarList": {
+        "description": "Calendar list view tab label"
+    },
+    "calendarView": "Calendar",
+    "@calendarView": {
+        "description": "Calendar view tab label"
+    },
+    "restorePurchases": "Restore Purchases",
+    "@restorePurchases": {
+        "description": "Text for the restore purchases button"
+    },
+    "premiumThemesDescription": "Access to all premium themes and styles",
+    "@premiumThemesDescription": {
+        "description": "Description for premium themes feature"
+    },
+    "premiumFeatures": "Premium Features",
+    "@premiumFeatures": {
+        "description": "Title for premium features section"
+    },
+    "premiumFeaturesDescription": "Unlock all premium features and customization options",
+    "@premiumFeaturesDescription": {
+        "description": "Description for premium features"
+    },
+    "premiumSupport": "Premium Support",
+    "@premiumSupport": {
+        "description": "Title for premium support section"
+    },
+    "premiumSupportDescription": "Get priority support and early access to new features",
+    "@premiumSupportDescription": {
+        "description": "Description for premium support"
+    },
+    "premiumWeekly": "Weekly",
+    "premiumWeeklyDescription": "Auto-renewing weekly subscription",
+    "premiumMonthly": "Monthly",
+    "premiumMonthlyDescription": "Auto-renewing monthly subscription",
+    "premiumLifetime": "Lifetime",
+    "premiumLifetimeDescription": "One-time payment, lifetime access",
+    "@premiumWeekly": {"description": "Weekly subscription plan title"},
+    "@premiumWeeklyDescription": {"description": "Weekly subscription plan description"},
+    "@premiumMonthly": {"description": "Monthly subscription plan title"},
+    "@premiumMonthlyDescription": {"description": "Monthly subscription plan description"},
+    "@premiumLifetime": {"description": "Lifetime subscription plan title"},
+    "@premiumLifetimeDescription": {"description": "Lifetime subscription plan description"},
+    "seePriceOnGooglePlay": "See price on Google Play",
+    "@seePriceOnGooglePlay": {"description": "Label for price shown on Google Play purchase screen"},
+    "weeklyPriceSuffix": "/Week",
+    "monthlyPriceSuffix": "/Month",
+    "@weeklyPriceSuffix": {"description": "Suffix for weekly price label"},
+    "@monthlyPriceSuffix": {"description": "Suffix for monthly price label"}
+} 

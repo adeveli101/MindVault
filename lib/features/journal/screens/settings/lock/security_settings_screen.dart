@@ -11,6 +11,7 @@ import 'package:mindvault/features/journal/screens/settings/lock/pinsetup_screen
 import 'package:mindvault/features/journal/screens/themes/themed_background.dart';
 import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class SecuritySettingsScreen extends StatefulWidget {
@@ -69,6 +70,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     // Async gap öncesi gerekli değişkenleri al
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final pinController = TextEditingController();
     final pinFocusNode = FocusNode();
 
@@ -101,11 +103,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       barrierDismissible: true,
       builder: (dialogContext) { // Farklı bir context adı kullan
         return AlertDialog(
-          title: const Text('PIN Doğrulama'),
+          title: Text(l10n.pinVerification),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Devam etmek için mevcut PIN kodunuzu girin."),
+              Text(l10n.enterCurrentPin),
               const SizedBox(height: 20),
               Pinput(
                 controller: pinController,
@@ -122,11 +124,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           ),
           actions: <Widget>[
             TextButton(
-                child: Text('İptal', style: TextStyle(color: Theme.of(dialogContext).colorScheme.secondary)), // dialogContext kullan
+                child: Text(l10n.cancel, style: TextStyle(color: Theme.of(dialogContext).colorScheme.secondary)), // dialogContext kullan
                 onPressed: () => Navigator.of(dialogContext).pop(null) // dialogContext kullan
             ),
             TextButton(
-                child: const Text('Doğrula'),
+                child: Text(l10n.verify),
                 onPressed: () {
                   // Navigator'u dialogContext ile kullan
                   if (pinController.text.isNotEmpty) {
@@ -215,20 +217,21 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   Future<bool> _showRemovePinConfirmationDialog(BuildContext context) async {
     // Bu dialog daha basit, async gap öncesi sadece theme alalım
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     // Dialog'un kendisi async işlem, sonrası için mounted kontrolü gerekli olacak
     final result = await showDialog<bool>(
       context: context, // Ana context
       builder: (dialogContext) => AlertDialog( // İç context
-        title: const Text('PIN Kaldır'),
-        content: const Text( 'Uygulama kilidi (PIN ve etkinse Biyometrik) kaldırılacaktır. Emin misiniz?'),
+        title: Text(l10n.removePin),
+        content: Text(l10n.removePinConfirmation),
         actions: <Widget>[
           TextButton(
-              child: Text('İptal', style: TextStyle(color: Theme.of(dialogContext).colorScheme.secondary)), // dialogContext kullan
+              child: Text(l10n.cancel, style: TextStyle(color: Theme.of(dialogContext).colorScheme.secondary)), // dialogContext kullan
               onPressed: () => Navigator.of(dialogContext).pop(false) // dialogContext kullan
           ),
           TextButton(
-              child: Text('Kilidi Kaldır', style: TextStyle(color: Theme.of(dialogContext).colorScheme.error)), // dialogContext kullan
+              child: Text(l10n.removeLock, style: TextStyle(color: Theme.of(dialogContext).colorScheme.error)), // dialogContext kullan
               onPressed: () => Navigator.of(dialogContext).pop(true) // dialogContext kullan
           ),
         ],
@@ -319,17 +322,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return ThemedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-            title: const Text('Güvenlik Ayarları'),
+            title: Text(l10n.securitySettings),
             backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
             leading: IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 onPressed: () {
-                  // Güvenli pop
                   if(Navigator.canPop(context)) Navigator.pop(context);
                 }
             )
@@ -375,8 +378,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     isPinSet ? Icons.lock_person_rounded : Icons.lock_open_rounded,
                     color: isPinSet ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   ),
-                  title: Text('Uygulama Kilidi (PIN)', style: textTheme.titleMedium),
-                  subtitle: Text(isPinSet ? 'Etkin' : 'Kapalı'),
+                  title: Text(l10n.appLock, style: textTheme.titleMedium),
+                  subtitle: Text(isPinSet ? l10n.enabled : l10n.disabled),
                   trailing: Switch(
                     value: isPinSet,
                     // onChanged içinde async işlem olduğu için yardımcı metot kullan
@@ -397,7 +400,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     color: colorScheme.secondary.withOpacity(isPinSet ? 1.0 : 0.5),
                   ),
                   title: Text(
-                    'PIN Değiştir',
+                    l10n.changePin,
                     style: textTheme.titleMedium?.copyWith(
                         color: isPinSet ? null : colorScheme.onSurface.withOpacity(0.5)
                     ),
@@ -415,14 +418,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 // Cihaz destekliyorsa ve PIN ayarlıysa SwitchListTile göster
                 if (_canCheckBiometrics)
                   SwitchListTile(
-                    title: Text('Biyometrik Giriş',
+                    title: Text(l10n.biometricLogin,
                       style: textTheme.titleMedium?.copyWith(
                           color: isPinSet ? null : colorScheme.onSurface.withOpacity(0.5)
                       ),
                     ),
                     subtitle: Text(isPinSet
-                        ? (isBiometricsCurrentlyEnabled ? 'Etkin' : 'Kapalı')
-                        : 'Önce PIN kilidini etkinleştirin' // PIN yoksa bilgi ver
+                        ? (isBiometricsCurrentlyEnabled ? l10n.enabled : l10n.disabled)
+                        : l10n.enablePinFirst
                     ),
                     value: isPinSet && isBiometricsCurrentlyEnabled, // Değer, PIN varsa ve etkinse true
                     // Değiştirme işlemi sadece PIN ayarlıysa mümkün
@@ -442,8 +445,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 else
                   ListTile(
                     leading: Icon(Icons.fingerprint_rounded, color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
-                    title: Text('Biyometrik Giriş', style: textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant.withOpacity(0.7))),
-                    subtitle: Text('Cihazınız desteklemiyor veya ayarlanamadı', style: textTheme.bodySmall),
+                    title: Text(l10n.biometricLogin, style: textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant.withOpacity(0.7))),
+                    subtitle: Text(l10n.deviceNotSupported, style: textTheme.bodySmall),
                     enabled: false,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Dikey padding ayarlandı
                   ),
